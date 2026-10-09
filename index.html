@@ -170,12 +170,8 @@
 
       async loadAccessStatus() {
         try {
-          // Logado → check_access (sem parâmetros)
-          // Anônimo → check_access_anon (com p_visitor_id)
-          const { data, error } = this.user
-            ? await supabaseClient.rpc('check_access')
-            : await supabaseClient.rpc('check_access_anon', { p_visitor_id: this.visitorId });
-
+          // Nova assinatura: payload JSONB com visitor_id (opcional)
+          const { data, error } = await supabaseClient.rpc('check_access', { payload: { visitor_id: this.visitorId } });
           if (error) {
             console.error('Erro ao verificar acesso:', error);
             return;
@@ -537,11 +533,8 @@
         // Consome teste se não tem acesso e é orçamento novo
         if (!this.hasFullAccess() && !exists) {
           try {
-            // Logado → consume_free_trial | Anônimo → consume_free_trial_anon
-            const { data, error } = this.user
-              ? await supabaseClient.rpc('consume_free_trial')
-              : await supabaseClient.rpc('consume_free_trial_anon', { p_visitor_id: this.visitorId });
-
+            // Nova assinatura: payload JSONB com visitor_id
+            const { data, error } = await supabaseClient.rpc('consume_free_trial', { payload: { visitor_id: this.visitorId } });
             if (error || !data?.success) {
               this.showToast(data?.error || 'Você já utilizou seu orçamento gratuito.', 'error');
               this.openPaywall();
@@ -647,7 +640,6 @@
         modal.classList.remove('hidden');
       }
 
-      // =============== WHATSAPP SHARE ===============
       buildQuoteWhatsAppMessage(q) {
         const lines = [];
         lines.push(`*ORÇAMENTO #${q.number}*`);
@@ -666,14 +658,8 @@
         lines.push(`Subtotal: ${this.formatCurrency(q.subtotal)}`);
         if (q.discountValue > 0) lines.push(`Desconto: -${this.formatCurrency(q.discountValue)}`);
         lines.push(`*TOTAL: ${this.formatCurrency(q.total)}*`);
-        if (q.notes) {
-          lines.push('');
-          lines.push(`_${q.notes}_`);
-        }
-        if (this.profile.pixKey) {
-          lines.push('');
-          lines.push(`*Chave Pix:* ${this.profile.pixKey}`);
-        }
+        if (q.notes) { lines.push(''); lines.push(`_${q.notes}_`); }
+        if (this.profile.pixKey) { lines.push(''); lines.push(`*Chave Pix:* ${this.profile.pixKey}`); }
         return lines.join('\n');
       }
 
