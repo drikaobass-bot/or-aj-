@@ -1754,7 +1754,7 @@
               </button>
             </div>
 
-            <p class="text-xs text-slate-300">Você já utilizou ${this.profile.quotesCreatedThisMonth}/5 orçamentos grátis este mês. Assine o Pro Anual para crescer seu negócio.</p>
+            <p class="text-xs text-slate-300">Você já utilizou ${this.profile.quotesCreatedThisMonth}/5 orçamentos grátis este mês. Escolha seu plano abaixo e cresça seu negócio.</p>
 
             <div class="space-y-3 text-xs">
               <div class="flex items-center space-x-3 p-2.5 bg-slate-800/80 rounded-xl border border-slate-700">
@@ -1771,16 +1771,33 @@
               </div>
             </div>
 
-            <!-- Pricing Box com Link da Cerefy - Plano Anual Corrigido -->
-            <div class="p-4 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl flex flex-col sm:flex-row justify-between items-center gap-3">
-              <div>
-                <p class="text-xs font-bold text-emerald-100">Plano Pro Anual</p>
-                <p class="text-2xl font-black text-white">R$ 119,00 <span class="text-xs font-normal text-emerald-100">/ano</span></p>
+            <!-- Pricing Options Grid (Anual vs Mensal) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <!-- Plano Anual -->
+              <div class="p-4 bg-gradient-to-br from-emerald-600 to-teal-700 rounded-xl flex flex-col justify-between space-y-3 border border-emerald-500 shadow-md">
+                <div>
+                  <span class="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Mais Popular</span>
+                  <p class="text-sm font-bold text-emerald-100 mt-2">Plano Pro Anual</p>
+                  <p class="text-xl font-black text-white">R$ 119,00 <span class="text-xs font-normal text-emerald-100">/ano</span></p>
+                  <p class="text-[10px] text-emerald-100 mt-1">Pagamento único com acesso anual completo.</p>
+                </div>
+                <a href="https://cerefy.com.br/checkout/c9d342ca-5bb0-454e-b861-eb36dbefa9e8" target="_blank" class="w-full py-2.5 bg-white text-slate-900 font-extrabold rounded-xl text-xs shadow hover:bg-slate-100 transition-all text-center block active:scale-95">
+                  Assinar Anual
+                </a>
               </div>
-              
-              <a href="https://cerefy.com.br/checkout/e70bb500-25be-412a-840d-e72261e80d8a/PRO-ANUAL" target="_blank" class="w-full sm:w-auto px-5 py-3 bg-white text-slate-900 font-extrabold rounded-xl text-xs shadow-lg hover:bg-slate-100 transition-all text-center block active:scale-95">
-                Assinar Agora (Pix / Cartão)
-              </a>
+
+              <!-- Plano Mensal -->
+              <div class="p-4 bg-slate-800 rounded-xl flex flex-col justify-between space-y-3 border border-slate-700 shadow-md">
+                <div>
+                  <span class="bg-slate-700 text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Flexível</span>
+                  <p class="text-sm font-bold text-slate-200 mt-2">Plano Pro Mensal</p>
+                  <p class="text-xl font-black text-white">Mensal <span class="text-xs font-normal text-slate-400">/mês</span></p>
+                  <p class="text-[10px] text-slate-400 mt-1">Cancele quando quiser sem fidelidade.</p>
+                </div>
+                <a href="https://cerefy.com.br/p/f5jdix" target="_blank" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold rounded-xl text-xs shadow hover:bg-emerald-400 transition-all text-center block active:scale-95">
+                  Assinar Mensal
+                </a>
+              </div>
             </div>
           </div>
         `;
