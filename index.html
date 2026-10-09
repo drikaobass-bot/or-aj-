@@ -61,7 +61,7 @@
       <div class="flex items-center space-x-2">
         <button onclick="app.openPaywall()" id="plan-badge" class="flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition-all">
           <i class="fa-solid fa-crown text-[10px] text-amber-400"></i>
-          <span id="plan-text">Plano Grátis</span>
+          <span id="plan-text">Carregando…</span>
         </button>
         <button onclick="app.openAuthModal()" id="auth-btn" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-all">Entrar</button>
       </div>
@@ -119,11 +119,20 @@
     const QUOTE_STATUSES = ['Rascunho', 'Enviado', 'Aprovado', 'Recusado'];
     const SUBSCRIPTION_CHECK_INTERVAL = 5 * 60 * 1000;
 
+    const EMPTY_ACCESS = {
+      access: false,
+      is_pro: false,
+      is_admin: false,
+      has_free_trial: false,
+      can_create_quote: false,
+      quote_count: 0
+    };
+
     class OrçaJaApp {
       constructor() {
         this.user = null;
         this.profile = { ...DEFAULT_PROFILE };
-        this.accessInfo = null;
+        this.accessInfo = { ...EMPTY_ACCESS };
         this.subscription = null;
         this.clients = [];
         this.quotes = [];
@@ -159,25 +168,18 @@
         }[tag] || tag));
       }
 
-      // =============== ESTADO DE ACESSO (servidor) ===============
-      // isPro: tem assinatura ativa OU é admin. NÃO conta teste grátis.
+      // =============== ESTADO DE ACESSO ===============
       isPro() {
         return !!(this.accessInfo && (this.accessInfo.is_pro || this.accessInfo.is_admin));
       }
       isAdmin() {
         return !!(this.accessInfo && this.accessInfo.is_admin);
       }
-      // hasFullAccess: Pro, Admin OU ainda tem direito ao teste grátis.
-      // Este é o "guarda-chuva" que libera TODAS as funções durante o teste.
       hasFullAccess() {
         if (this.isPro()) return true;
         return !!(this.accessInfo && this.accessInfo.has_free_trial === true);
       }
-      canCreateQuote() {
-        return !!(this.accessInfo && this.accessInfo.can_create_quote);
-      }
 
-      // Guarda único: bloqueia tudo quando não há acesso.
       requireFullAccess(actionLabel = 'esta função') {
         if (!this.user) {
           this.showToast('Entre com sua conta para continuar.', 'error');
@@ -202,7 +204,7 @@
             await this.loadSubscription();
           } else {
             this.loadLocalFallback();
-            this.accessInfo = { access: false, is_pro: false, is_admin: false, can_create_quote: false, has_free_trial: false };
+            this.accessInfo = { ...EMPTY_ACCESS };
           }
           this.updateHeaderBadge();
           this.navigate('dashboard');
@@ -210,7 +212,7 @@
         } catch (e) {
           console.error('Erro na inicialização:', e);
           this.loadLocalFallback();
-          this.accessInfo = { access: false, is_pro: false, is_admin: false, can_create_quote: false, has_free_trial: false };
+          this.accessInfo = { ...EMPTY_ACCESS };
           this.updateHeaderBadge();
           this.navigate('dashboard');
         }
@@ -236,20 +238,34 @@
 
       async loadAccessStatus() {
         if (!this.user) {
-          this.accessInfo = { access: false, is_pro: false, is_admin: false, can_create_quote: false, has_free_trial: false };
+          this.accessInfo = { ...EMPTY_ACCESS };
           return;
         }
         try {
           const { data, error } = await supabaseClient.rpc('check_access');
           if (error) {
             console.error('Erro ao verificar acesso:', error);
-            this.accessInfo = { access: false, is_pro: false, is_admin: false, can_create_quote: false, has_free_trial: false };
+            // NÃO zera — mantém o último estado válido para não travar o usuário
+            if (!this.accessInfo) this.accessInfo = { ...EMPTY_ACCESS };
+            return;
+          }
+          if (data && typeof data === 'object') {
+            this.accessInfo = {
+              access: !!data.access,
+              is_pro: !!data.is_pro,
+              is_admin: !!data.is_admin,
+              has_free_trial: !!data.has_free_trial,
+              can_create_quote: !!data.can_create_quote,
+              quote_count: Number(data.quote_count) || 0,
+              plan_type: data.plan_type,
+              end_date: data.end_date
+            };
           } else {
-            this.accessInfo = data || { access: false };
+            this.accessInfo = { ...EMPTY_ACCESS };
           }
         } catch (e) {
           console.error('Erro RPC check_access:', e);
-          this.accessInfo = { access: false, is_pro: false, is_admin: false, can_create_quote: false, has_free_trial: false };
+          if (!this.accessInfo) this.accessInfo = { ...EMPTY_ACCESS };
         }
       }
 
@@ -295,38 +311,60 @@
       async loadUserDataFromSupabase() {
         if (!this.user) return;
         try {
+          // ===== Perfil =====
           let { data: profileData, error: profErr } = await supabaseClient
             .from('profiles').select('*').eq('id', this.user.id).maybeSingle();
-          if (profErr) console.error('Erro ao buscar perfil:', profErr);
 
-          if (!profileData) {
-            const newProf = { id: this.user.id, email: this.user.email, ...DEFAULT_PROFILE };
-            const { error: insErr } = await supabaseClient.from('profiles').insert([newProf]);
-            if (insErr) console.error('Erro ao criar perfil:', insErr);
-            profileData = newProf;
+          if (profErr) {
+            console.error('Erro ao buscar perfil:', profErr);
           }
 
-          this.profile = {
-            name: profileData.name || '',
-            tradeName: profileData.trade_name || '',
-            document: profileData.document || '',
-            phone: profileData.phone || '',
-            email: profileData.email || this.user.email || '',
-            address: profileData.address || '',
-            profession: profileData.profession || 'Prestador',
-            pixKey: profileData.pix_key || '',
-            footerTerms: profileData.footer_terms || DEFAULT_PROFILE.footerTerms,
-          };
+          if (!profileData) {
+            // Tenta criar o perfil
+            const newProf = {
+              id: this.user.id,
+              email: this.user.email,
+              name: '', trade_name: '', document: '', phone: '',
+              address: '', profession: 'Prestador de Serviços',
+              pix_key: '', footer_terms: DEFAULT_PROFILE.footerTerms
+            };
+            const { error: insErr } = await supabaseClient.from('profiles').upsert([newProf], { onConflict: 'id' });
+            if (insErr) {
+              console.error('Erro ao criar perfil:', insErr);
+            } else {
+              profileData = newProf;
+            }
+          }
 
-          const { data: clientsData } = await supabaseClient
+          if (profileData) {
+            this.profile = {
+              name: profileData.name || '',
+              tradeName: profileData.trade_name || '',
+              document: profileData.document || '',
+              phone: profileData.phone || '',
+              email: profileData.email || this.user.email || '',
+              address: profileData.address || '',
+              profession: profileData.profession || 'Prestador de Serviços',
+              pixKey: profileData.pix_key || '',
+              footerTerms: profileData.footer_terms || DEFAULT_PROFILE.footerTerms,
+            };
+          } else {
+            this.profile = { ...DEFAULT_PROFILE, email: this.user.email || '' };
+          }
+
+          // ===== Clientes =====
+          const { data: clientsData, error: cliErr } = await supabaseClient
             .from('clients').select('*').eq('user_id', this.user.id).order('name', { ascending: true });
+          if (cliErr) console.error('Erro ao carregar clientes:', cliErr);
           this.clients = (clientsData || []).map(c => ({
             id: c.id, name: c.name || '', phone: c.phone || '',
             email: c.email || '', address: c.address || ''
           }));
 
-          const { data: quotesData } = await supabaseClient
+          // ===== Orçamentos =====
+          const { data: quotesData, error: qErr } = await supabaseClient
             .from('quotes').select('*').eq('user_id', this.user.id).order('number', { ascending: false });
+          if (qErr) console.error('Erro ao carregar orçamentos:', qErr);
           this.quotes = (quotesData || []).map(q => ({
             id: q.id, number: q.number, clientName: q.client_name || '',
             date: q.date, validityDays: q.validity_days || 7,
@@ -342,8 +380,10 @@
             notes: q.notes || ''
           }));
 
-          const { data: receiptsData } = await supabaseClient
+          // ===== Recibos =====
+          const { data: receiptsData, error: rErr } = await supabaseClient
             .from('receipts').select('*').eq('user_id', this.user.id).order('number', { ascending: false });
+          if (rErr) console.error('Erro ao carregar recibos:', rErr);
           this.receipts = (receiptsData || []).map(r => ({
             id: r.id, number: r.number, payerName: r.payer_name || '',
             receiverName: r.receiver_name || '', date: r.date,
@@ -365,13 +405,19 @@
         } catch (e) { /* ignore */ }
 
         if (this.user) {
-          const { error } = await supabaseClient.from('profiles').update({
-            name: this.profile.name, trade_name: this.profile.tradeName,
-            document: this.profile.document, phone: this.profile.phone,
-            email: this.profile.email, address: this.profile.address,
-            profession: this.profile.profession, pix_key: this.profile.pixKey,
-            footer_terms: this.profile.footerTerms
-          }).eq('id', this.user.id);
+          const payload = {
+            name: this.profile.name || '',
+            trade_name: this.profile.tradeName || '',
+            document: this.profile.document || '',
+            phone: this.profile.phone || '',
+            email: this.profile.email || '',
+            address: this.profile.address || '',
+            profession: this.profile.profession || '',
+            pix_key: this.profile.pixKey || '',
+            footer_terms: this.profile.footerTerms || ''
+          };
+          const { error } = await supabaseClient.from('profiles')
+            .update(payload).eq('id', this.user.id);
           if (error) console.error('Erro ao salvar perfil:', error);
         }
         this.updateHeaderBadge();
@@ -383,7 +429,10 @@
         const authBtn = document.getElementById('auth-btn');
         if (!badgeText) return;
 
-        if (this.isAdmin()) {
+        if (!this.user) {
+          badgeText.textContent = 'Plano Grátis';
+          badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition-all';
+        } else if (this.isAdmin()) {
           badgeText.textContent = 'Admin';
           badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-400/20 text-purple-300 border border-purple-400/40';
         } else if (this.isPro()) {
@@ -411,7 +460,7 @@
         await supabaseClient.auth.signOut();
         this.user = null;
         this.profile = { ...DEFAULT_PROFILE };
-        this.accessInfo = null;
+        this.accessInfo = { ...EMPTY_ACCESS };
         this.subscription = null;
         this.clients = []; this.quotes = []; this.receipts = [];
         try {
@@ -469,12 +518,11 @@
         const recentQuotes = [...this.quotes].slice(0, 5);
         const quoteCount = this.accessInfo?.quote_count ?? this.quotes.length;
 
-        let usageLabel = 'Grátis';
+        let usageLabel = 'Bloqueado';
         let usageValue = '0/1';
         if (this.isAdmin()) { usageLabel = 'Admin'; usageValue = 'Ilimitado'; }
         else if (this.isPro()) { usageLabel = 'Pro'; usageValue = 'Ilimitado'; }
         else if (this.accessInfo?.has_free_trial) { usageLabel = 'Teste'; usageValue = `${quoteCount}/1`; }
-        else { usageLabel = 'Bloqueado'; usageValue = '0/1'; }
 
         return `
           <div class="space-y-6 animate-fade-in">
@@ -560,7 +608,6 @@
         `;
       }
 
-      // =============== CRIAÇÃO DE ORÇAMENTO (SERVIDOR DECIDE) ===============
       async startNewQuote() {
         if (!this.user) {
           this.showToast('Entre com sua conta para criar orçamentos.', 'error');
@@ -570,24 +617,23 @@
 
         await this.loadAccessStatus();
 
-        // Pro/Admin: cria direto
         if (this.isPro()) {
           this._createNewQuote();
           return;
         }
 
-        // Teste grátis disponível? Tenta consumir no servidor.
         if (this.accessInfo?.has_free_trial) {
           try {
             const { data, error } = await supabaseClient.rpc('consume_free_trial');
             if (error) {
               console.error('Erro consume_free_trial:', error);
-              this.showToast('Não foi possível liberar o orçamento. Tente novamente.', 'error');
+              this.showToast('Erro ao liberar orçamento. Tente novamente.', 'error');
               return;
             }
             if (data && data.success) {
               this.accessInfo.has_free_trial = false;
               this.accessInfo.can_create_quote = false;
+              this.updateHeaderBadge();
               this._createNewQuote();
             } else {
               this.showToast(data?.error || 'Você já utilizou seu orçamento gratuito.', 'error');
@@ -600,7 +646,6 @@
           return;
         }
 
-        // Sem teste e sem Pro
         this.openPaywall();
       }
 
