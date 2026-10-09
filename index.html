@@ -867,7 +867,7 @@
                 <div class="p-4 hover:bg-slate-50 transition-colors flex justify-between items-center">
                   <div>
                     <h4 class="font-bold text-slate-900 text-sm">${this.escapeHTML(c.name)}</h4>
-                    <p class="text-xs text-slate-500">Tel: ${this.escapeHTML(c.phone \vert{}\vert{} 'N/I')} • E-mail: ${this.escapeHTML(c.email || 'N/I')}</p>
+                    <p class="text-xs text-slate-500">Tel: ${this.escapeHTML(c.phone || 'N/I')} • E-mail: ${this.escapeHTML(c.email || 'N/I')}</p>
                   </div>
                   <div class="flex space-x-1">
                     <button onclick="app.deleteClient('${c.id}')" class="p-2 text-slate-500 hover:text-rose-600 rounded-lg"><i class="fa-solid fa-trash"></i></button>
