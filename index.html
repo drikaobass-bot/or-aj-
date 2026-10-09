@@ -174,6 +174,16 @@
     </div>
   </div>
 
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // Configuração do Supabase
+    const SUPABASE_URL = 'https://ecxgdndfyazyyhhctlgc.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_bqcC7xQtqTxSe_GSMBxoYA_a_EIk8qK';
+
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  </script>
+
   <script>
     // Core Application Logic & State Store
     const DEFAULT_PROFILE = {
@@ -269,7 +279,7 @@
       constructor() {
         this.loadState();
         this.currentTab = 'dashboard';
-        this.activeQuote = null; // Holds temporary quote being edited
+        this.activeQuote = null;
       }
 
       loadState() {
@@ -334,7 +344,6 @@
       navigate(tab, params = {}) {
         this.currentTab = tab;
         
-        // Highlight tab buttons
         document.querySelectorAll('.nav-btn').forEach(btn => {
           btn.classList.remove('text-emerald-600', 'font-bold');
           btn.classList.add('text-slate-500');
@@ -585,7 +594,6 @@
       }
 
       startNewQuote() {
-        // Enforce Free Limit
         if (this.profile.plan === 'free' && this.profile.quotesCreatedThisMonth >= 5) {
           this.openPaywall();
           return;
@@ -697,7 +705,6 @@
               <div class="flex items-center justify-between border-b border-slate-100 pb-2">
                 <h3 class="font-bold text-slate-900 text-sm">Itens do Orçamento</h3>
                 
-                <!-- Add catalog drop -->
                 <div class="relative">
                   <button onclick="app.toggleCatalogDropdown()" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-lg text-xs flex items-center space-x-1">
                     <i class="fa-solid fa-book-open"></i>
@@ -707,7 +714,7 @@
                     ${this.catalog.map(cat => `
                       <button onclick="app.addItemFromCatalog('${cat.id}')" class="w-full text-left p-2.5 hover:bg-slate-50 text-xs transition-colors">
                         <p class="font-bold text-slate-800">${cat.description}</p>
-                        <p class="text-[10px] text-slate-400">${this.formatCurrency(cat.defaultPrice)} / ${cat.unit}</p>
+                        <p class="text-[10px] text-slate-400">${this.formatCurrency(cat.defaultPrice)} /${cat.unit}</p>
                       </button>
                     `).join('')}
                   </div>
@@ -735,7 +742,6 @@
                   <span id="calc-subtotal" class="font-bold text-white">${this.formatCurrency(q.subtotal)}</span>
                 </div>
 
-                <!-- Discount Input Row -->
                 <div class="flex items-center justify-between gap-2">
                   <span class="text-slate-300">Desconto:</span>
                   <div class="flex items-center space-x-2">
@@ -747,7 +753,6 @@
                   </div>
                 </div>
 
-                <!-- Extra fee -->
                 <div class="flex items-center justify-between gap-2">
                   <span class="text-slate-300">Acréscimo / Frete:</span>
                   <input type="number" step="0.01" value="${q.extraFee}" oninput="app.updateExtraFee(parseFloat(this.value) || 0)" class="w-20 bg-slate-800 text-white border border-slate-700 rounded text-xs p-1 text-right font-bold">
@@ -903,7 +908,6 @@
         item.subtotal = (item.quantity || 0) * (item.unitPrice || 0);
         this.recalculateActiveQuote();
         
-        // Dynamic fast update of displays without full re-render
         const subtotalEl = document.getElementById('calc-subtotal');
         const totalEl = document.getElementById('calc-total');
         const floatingEl = document.getElementById('floating-total-preview');
@@ -1065,7 +1069,7 @@
                     ${quote.items.map(item => `
                       <tr>
                         <td class="p-3 font-medium text-slate-800">${item.description}</td>
-                        <td class="p-3 text-center text-slate-600">${item.quantity} ${item.unit}</td>
+                        <td class="p-3 text-center text-slate-600">${item.quantity}${item.unit}</td>
                         <td class="p-3 text-right text-slate-600">${this.formatCurrency(item.unitPrice)}</td>
                         <td class="p-3 text-right font-bold text-slate-900">${this.formatCurrency(item.subtotal)}</td>
                       </tr>
@@ -1159,7 +1163,6 @@
       }
 
       copyPixKey(key) {
-        // Fallback robust copy
         const tempInput = document.createElement('input');
         tempInput.value = key;
         document.body.appendChild(tempInput);
@@ -1173,14 +1176,12 @@
         const quote = this.quotes.find(q => q.id === quoteId);
         if (!quote) return;
 
-        // Update status to Enviado
         quote.status = 'Enviado';
         this.saveState();
 
         const message = `Olá, ${quote.clientName}! Segue o orçamento nº ${quote.number} no valor total de ${this.formatCurrency(quote.total)}. Validade de ${quote.validityDays} dias.\n\nQualquer dúvida estou à disposição!`;
         const encoded = encodeURIComponent(message);
         
-        // Open WhatsApp web or wa.me link
         window.open(`https://wa.me/?text=${encoded}`, '_blank');
         this.showToast('Redirecionando para o WhatsApp...');
       }
@@ -1193,7 +1194,6 @@
         const quote = this.quotes.find(q => q.id === quoteId);
         if (!quote) return;
 
-        // Check Free Limit for receipts
         if (this.profile.plan === 'free' && this.profile.receiptsCreatedThisMonth >= 3) {
           this.openPaywall();
           return;
@@ -1291,7 +1291,6 @@
         this.profile.receiptsCreatedThisMonth += 1;
         this.profile.nextReceiptNumber += 1;
 
-        // Mark quote as Approved
         const q = this.quotes.find(item => item.id === quoteId);
         if (q) q.status = 'Aprovado';
 
@@ -1414,7 +1413,7 @@
           const strResto = converterGrupo(restoMil);
           textoInteiro = strMil + (strResto ? (restoMil < 100 ? ' e ' : ' ') + strResto : '');
         } else {
-          textoInteiro = inteiros.toString(); // Fallback for very high numbers
+          textoInteiro = inteiros.toString();
         }
 
         let resultado = '';
@@ -1452,8 +1451,7 @@
               ` : this.clients.map(c => `
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-start">
                   <div class="space-y-1">
-                    <h4 class="font-bold text-slate-900 text-sm">${c.name}</h4>
-                    ${c.phone ? `<p class="text-xs text-slate-500"><i class="fa-brands fa-whatsapp text-emerald-600 mr-1"></i>${c.phone}</p>` : ''}
+                    <h4 class="font-bold text-slate-900 text-sm">${c.name}</h4>${c.phone ? `<p class="text-xs text-slate-500"><i class="fa-brands fa-whatsapp text-emerald-600 mr-1"></i>${c.phone}</p>` : ''}
                     ${c.email ? `<p class="text-xs text-slate-500"><i class="fa-regular fa-envelope mr-1"></i>${c.email}</p>` : ''}
                     ${c.address ? `<p class="text-[11px] text-slate-400 mt-1">${c.address}</p>` : ''}
                   </div>
