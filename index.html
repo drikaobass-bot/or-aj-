@@ -1039,7 +1039,7 @@
               <div class="flex items-center space-x-2">
                 <button onclick="app.shareQuoteWhatsApp('${quote.id}')" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center space-x-1.5 shadow-sm">
                   <i class="fa-brands fa-whatsapp text-sm"></i>
-                  <span class="hidden sm:inline">WhatsApp com Link</span>
+                  <span class="hidden sm:inline">WhatsApp</span>
                 </button>
                 <button onclick="window.print()" class="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center space-x-1.5">
                   <i class="fa-solid fa-print"></i>
@@ -1197,22 +1197,18 @@
         this.showToast('Chave Pix copiada para a área de transferência!');
       }
 
-      async shareQuoteWhatsApp(quoteId) {
+      shareQuoteWhatsApp(quoteId) {
         const quote = this.quotes.find(q => q.id === quoteId);
         if (!quote) return;
 
         quote.status = 'Enviado';
         this.saveState();
 
-        this.showToast('Gerando link do orçamento...');
-
-        // Link do PDF/Orçamento hospedado publicamente no Supabase Storage
-        const pdfPublicUrl = `${SUPABASE_URL}/storage/v1/object/public/orcamentos-pdf/orcamento_${quote.number}.pdf`;
-
-        const message = `Olá, ${quote.clientName}! Segue o link para visualizar o seu orçamento nº ${quote.number} no valor de ${this.formatCurrency(quote.total)}:\n\n📄 ${pdfPublicUrl}\n\nValidade: ${quote.validityDays} dias.\nQualquer dúvida estou à disposição!`;
+        const message = `Olá, ${quote.clientName}! Segue o orçamento nº ${quote.number} no valor total de ${this.formatCurrency(quote.total)}.\n\nValidade: ${quote.validityDays} dias.\n\nQualquer dúvida estou à disposição!`;
         const encoded = encodeURIComponent(message);
         
         window.open(`https://wa.me/?text=${encoded}`, '_blank');
+        this.showToast('WhatsApp aberto com sucesso!');
       }
 
       closeModal() {
@@ -1781,7 +1777,8 @@
                 <p class="text-xs font-bold text-emerald-100">Plano Anual Pro</p>
                 <p class="text-2xl font-black text-white">R$ 119,00 <span class="text-xs font-normal text-emerald-100">/ano</span></p>
               </div>
-              <a href="https://pay.cerefy.com.br/" target="_blank" class="w-full sm:w-auto px-5 py-3 bg-white text-slate-900 font-extrabold rounded-xl text-xs shadow-lg hover:bg-slate-100 transition-all text-center block active:scale-95">
+              
+              <a href="https://cerefy.com.br/checkout/e70bb500-25be-412a-840d-e72261e80d8a/PRO-ANUAL" target="_blank" class="w-full sm:w-auto px-5 py-3 bg-white text-slate-900 font-extrabold rounded-xl text-xs shadow-lg hover:bg-slate-100 transition-all text-center block active:scale-95">
                 Assinar Agora (Pix / Cartão)
               </a>
             </div>
