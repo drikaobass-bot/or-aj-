@@ -170,8 +170,11 @@
 
       async loadAccessStatus() {
         try {
-          // Nova assinatura: payload JSONB com visitor_id (opcional)
-          const { data, error } = await supabaseClient.rpc('check_access', { payload: { visitor_id: this.visitorId } });
+          // Logado → rpc_acesso_user | Anônimo → rpc_acesso_anon(vid)
+          const { data, error } = this.user
+            ? await supabaseClient.rpc('rpc_acesso_user')
+            : await supabaseClient.rpc('rpc_acesso_anon', { vid: this.visitorId });
+
           if (error) {
             console.error('Erro ao verificar acesso:', error);
             return;
@@ -184,7 +187,7 @@
               plan_type: data.plan_type, end_date: data.end_date, anonymous: !!data.anonymous
             };
           }
-        } catch (e) { console.error('Erro RPC check_access:', e); }
+        } catch (e) { console.error('Erro RPC:', e); }
       }
 
       async loadSubscription() {
@@ -533,8 +536,11 @@
         // Consome teste se não tem acesso e é orçamento novo
         if (!this.hasFullAccess() && !exists) {
           try {
-            // Nova assinatura: payload JSONB com visitor_id
-            const { data, error } = await supabaseClient.rpc('consume_free_trial', { payload: { visitor_id: this.visitorId } });
+            // Logado → rpc_consumir_user | Anônimo → rpc_consumir_anon(vid)
+            const { data, error } = this.user
+              ? await supabaseClient.rpc('rpc_consumir_user')
+              : await supabaseClient.rpc('rpc_consumir_anon', { vid: this.visitorId });
+
             if (error || !data?.success) {
               this.showToast(data?.error || 'Você já utilizou seu orçamento gratuito.', 'error');
               this.openPaywall();
