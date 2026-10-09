@@ -170,15 +170,14 @@
 
       async loadAccessStatus() {
         try {
-          const params = this.user ? { visitor_id: null } : { visitor_id: this.visitorId };
-          const { data, error } = await supabaseClient.rpc('check_access', params);
+          // Logado → check_access (sem parâmetros)
+          // Anônimo → check_access_anon (com p_visitor_id)
+          const { data, error } = this.user
+            ? await supabaseClient.rpc('check_access')
+            : await supabaseClient.rpc('check_access_anon', { p_visitor_id: this.visitorId });
+
           if (error) {
             console.error('Erro ao verificar acesso:', error);
-            const msg = (error.message || '').toLowerCase();
-            if (!this.backendWarned && (msg.includes('function') || msg.includes('not found') || msg.includes('does not exist'))) {
-              this.backendWarned = true;
-              this.showToast('Backend não configurado. Rode o SQL no Supabase.', 'error');
-            }
             return;
           }
           if (data && typeof data === 'object') {
@@ -334,8 +333,7 @@
         if (this.isAdmin()) { ul = 'Admin'; uv = 'Ilimitado'; }
         else if (this.isPro()) { ul = 'Pro'; uv = 'Ilimitado'; }
         else if (this.accessInfo?.has_free_trial) { ul = 'Teste'; uv = `${qc}/1`; }
-        else if (!this.user) { ul = 'Expirado'; uv = '1/1'; }
-        else if (qc > 0) { ul = 'Expirado'; uv = `${qc}/1`; }
+        else { ul = 'Expirado'; uv = '1/1'; }
 
         return `
           <div class="space-y-6 animate-fade-in">
@@ -539,7 +537,11 @@
         // Consome teste se não tem acesso e é orçamento novo
         if (!this.hasFullAccess() && !exists) {
           try {
-            const { data, error } = await supabaseClient.rpc('consume_free_trial', { visitor_id: this.visitorId });
+            // Logado → consume_free_trial | Anônimo → consume_free_trial_anon
+            const { data, error } = this.user
+              ? await supabaseClient.rpc('consume_free_trial')
+              : await supabaseClient.rpc('consume_free_trial_anon', { p_visitor_id: this.visitorId });
+
             if (error || !data?.success) {
               this.showToast(data?.error || 'Você já utilizou seu orçamento gratuito.', 'error');
               this.openPaywall();
@@ -559,12 +561,10 @@
           return false;
         }
 
-        // Salva local
         const i = this.quotes.findIndex(q => q.id === this.activeQuote.id);
         if (i >= 0) this.quotes[i] = { ...this.activeQuote };
         else this.quotes.unshift({ ...this.activeQuote });
 
-        // Se logado, salva também no Supabase
         if (this.user) {
           const p = {
             id: this.activeQuote.id, user_id: this.user.id, number: this.activeQuote.number,
@@ -688,7 +688,6 @@
 
       async shareWhatsAppEditor() {
         if (!this.activeQuote) return;
-        // Salva antes de compartilhar (garante que os dados estão consistentes)
         const ok = await this.saveActiveQuote(false, false);
         if (!ok) return;
         this.shareWhatsApp(this.activeQuote.id);
