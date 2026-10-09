@@ -170,7 +170,6 @@
 
       async loadAccessStatus() {
         try {
-          // Logado → rpc_acesso_user | Anônimo → rpc_acesso_anon(vid)
           const { data, error } = this.user
             ? await supabaseClient.rpc('rpc_acesso_user')
             : await supabaseClient.rpc('rpc_acesso_anon', { vid: this.visitorId });
@@ -533,10 +532,8 @@
 
         const exists = this.quotes.some(q => q.id === this.activeQuote.id);
 
-        // Consome teste se não tem acesso e é orçamento novo
         if (!this.hasFullAccess() && !exists) {
           try {
-            // Logado → rpc_consumir_user | Anônimo → rpc_consumir_anon(vid)
             const { data, error } = this.user
               ? await supabaseClient.rpc('rpc_consumir_user')
               : await supabaseClient.rpc('rpc_consumir_anon', { vid: this.visitorId });
