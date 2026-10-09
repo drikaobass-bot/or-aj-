@@ -151,7 +151,7 @@
       footerTerms: 'Orçamento válido por 7 dias. Pagamento em até 3x no cartão sem juros ou 5% de desconto no Pix.',
       profession: 'Eletricista',
       plan: 'free',
-      nextQuoteNumber: 1001,
+      nextQuoteNumber: 1002,
       nextReceiptNumber: 101
     };
 
@@ -162,6 +162,27 @@
     const INITIAL_CATALOG = [
       { id: 'cat_1', description: 'Instalação de Chuveiro Elétrico', unit: 'serviço', defaultPrice: 120.00 },
       { id: 'cat_2', description: 'Troca de Disjuntor no Quadro de Força', unit: 'un', defaultPrice: 85.00 }
+    ];
+
+    // Configurado com 1 orçamento inicial para teste
+    const INITIAL_QUOTES = [
+      {
+        id: 'q_test_1',
+        number: 1001,
+        clientName: 'Ana Maria Silva',
+        date: '2026-10-09',
+        validityDays: 7,
+        status: 'Rascunho',
+        items: [{ description: 'Instalação de Chuveiro Elétrico', quantity: 1, unit: 'serviço', unitPrice: 120.00, subtotal: 120.00 }],
+        discountType: 'valor',
+        discountValue: 0,
+        extraFee: 0,
+        subtotal: 120.00,
+        total: 120.00,
+        paymentMethod: 'Pix',
+        timeframe: '1 dia',
+        notes: 'Teste inicial'
+      }
     ];
 
     class OrçaJaApp {
@@ -175,7 +196,7 @@
         this.profile = JSON.parse(localStorage.getItem('orca_profile')) || DEFAULT_PROFILE;
         this.clients = JSON.parse(localStorage.getItem('orca_clients')) || INITIAL_CLIENTS;
         this.catalog = JSON.parse(localStorage.getItem('orca_catalog')) || INITIAL_CATALOG;
-        this.quotes = JSON.parse(localStorage.getItem('orca_quotes')) || [];
+        this.quotes = JSON.parse(localStorage.getItem('orca_quotes')) || INITIAL_QUOTES;
         this.receipts = JSON.parse(localStorage.getItem('orca_receipts')) || [];
       }
 
@@ -354,7 +375,7 @@
 
         const newQuote = {
           id: 'q_' + Date.now(),
-          number: this.profile.nextQuoteNumber || 1001,
+          number: this.profile.nextQuoteNumber || 1002,
           clientName: this.clients[0]?.name || 'Cliente Padrão',
           date: new Date().toISOString().split('T')[0],
           validityDays: 7,
@@ -453,21 +474,29 @@
             <div class="flex justify-between items-start">
               <div>
                 <span class="text-xs font-extrabold text-amber-400 uppercase tracking-widest bg-amber-400/10 px-2.5 py-1 rounded-full border border-amber-400/20">Seja Pro</span>
-                <h3 class="text-2xl font-black mt-2">Limite Gratuito Atingido (5/5)</h3>
+                <h3 class="text-2xl font-black mt-2">Desbloqueie Recursos Pro</h3>
               </div>
               <button onclick="app.closeModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
-            <p class="text-xs text-slate-300">Escolha uma das opções abaixo para desbloquear orçamentos ilimitados e remover a marca d'água:</p>
+            <p class="text-xs text-slate-300">Escolha uma das opções abaixo para ter orçamentos ilimitados e sem marca d'água:</p>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-              <div class="p-4 bg-gradient-to-br from-emerald-600 to-teal-700 rounded-xl space-y-3 border border-emerald-500">
-                <p class="text-sm font-bold text-emerald-100">Plano Pro Anual</p>
-                <p class="text-xl font-black text-white">R$ 119,00 <span class="text-xs font-normal">/ano</span></p>
-                <a href="https://cerefy.com.br/checkout/c9d342ca-5bb0-454e-b861-eb36dbefa9e8" target="_blank" class="w-full py-2.5 bg-white text-slate-900 font-extrabold rounded-xl text-xs text-center block">Assinar Anual</a>
+              <div class="p-4 bg-gradient-to-br from-emerald-600 to-teal-700 rounded-xl space-y-3 border border-emerald-500 shadow-md">
+                <div>
+                  <span class="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Mais Popular</span>
+                  <p class="text-sm font-bold text-emerald-100 mt-2">Plano Pro Anual</p>
+                  <p class="text-xl font-black text-white">R$ 119,00 <span class="text-xs font-normal text-emerald-100">/ano</span></p>
+                  <p class="text-[10px] text-emerald-100 mt-1">Pagamento único anual.</p>
+                </div>
+                <a href="https://cerefy.com.br/checkout/c9d342ca-5bb0-454e-b861-eb36dbefa9e8" target="_blank" class="w-full py-2.5 bg-white text-slate-900 font-extrabold rounded-xl text-xs shadow text-center block">Assinar Anual</a>
               </div>
-              <div class="p-4 bg-slate-800 rounded-xl space-y-3 border border-slate-700">
-                <p class="text-sm font-bold text-slate-200">Plano Pro Mensal</p>
-                <p class="text-xl font-black text-white">Mensal</p>
-                <a href="https://cerefy.com.br/checkout/442c9856-0ce9-474e-bb2f-260c93534c40" target="_blank" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold rounded-xl text-xs text-center block">Assinar Mensal</a>
+              <div class="p-4 bg-slate-800 rounded-xl space-y-3 border border-slate-700 shadow-md">
+                <div>
+                  <span class="bg-slate-700 text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Flexível</span>
+                  <p class="text-sm font-bold text-slate-200 mt-2">Plano Pro Mensal</p>
+                  <p class="text-xl font-black text-white">R$ 14,90 <span class="text-xs font-normal text-slate-400">/mês</span></p>
+                  <p class="text-[10px] text-slate-400 mt-1">Cancele quando quiser.</p>
+                </div>
+                <a href="https://cerefy.com.br/checkout/442c9856-0ce9-474e-bb2f-260c93534c40" target="_blank" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold rounded-xl text-xs shadow text-center block">Assinar Mensal</a>
               </div>
             </div>
           </div>
