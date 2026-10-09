@@ -113,8 +113,7 @@
     const DEFAULT_PROFILE = {
       name: '', tradeName: '', document: '', phone: '', email: '',
       address: '', profession: 'Prestador de Serviços', pixKey: '',
-      footerTerms: 'Orçamento válido por 7 dias. Pagamento em até 3x no cartão sem juros ou 5% de desconto no Pix.',
-      plan: 'free'
+      footerTerms: 'Orçamento válido por 7 dias. Pagamento em até 3x no cartão sem juros ou 5% de desconto no Pix.'
     };
 
     const QUOTE_STATUSES = ['Rascunho', 'Enviado', 'Aprovado', 'Recusado'];
@@ -124,6 +123,7 @@
       constructor() {
         this.user = null;
         this.profile = { ...DEFAULT_PROFILE };
+        this.accessInfo = null;      // Estado de acesso vindo do servidor
         this.subscription = null;
         this.clients = [];
         this.quotes = [];
@@ -159,15 +159,30 @@
         }[tag] || tag));
       }
 
+      // =============== ESTADO DE ACESSO (servidor) ===============
+      isPro() {
+        return !!(this.accessInfo && (this.accessInfo.is_pro || this.accessInfo.is_admin));
+      }
+      isAdmin() {
+        return !!(this.accessInfo && this.accessInfo.is_admin);
+      }
+      canCreateQuote() {
+        return !!(this.accessInfo && this.accessInfo.can_create_quote);
+      }
+
+      // ========================================================
+
       async init() {
         try {
           const { data: { session } } = await supabaseClient.auth.getSession();
           this.user = session?.user || null;
           if (this.user) {
             await this.loadUserDataFromSupabase();
+            await this.loadAccessStatus();
             await this.loadSubscription();
           } else {
             this.loadLocalFallback();
+            this.accessInfo = { access: false, is_pro: false, is_admin: false, can_create_quote: false };
           }
           this.updateHeaderBadge();
           this.navigate('dashboard');
@@ -175,6 +190,7 @@
         } catch (e) {
           console.error('Erro na inicialização:', e);
           this.loadLocalFallback();
+          this.accessInfo = { access: false, is_pro: false, is_admin: false, can_create_quote: false };
           this.updateHeaderBadge();
           this.navigate('dashboard');
         }
@@ -182,14 +198,39 @@
 
       startSubscriptionWatcher() {
         if (this.subscriptionTimer) clearInterval(this.subscriptionTimer);
-        this.subscriptionTimer = setInterval(() => {
-          if (this.user) this.loadSubscription();
+        this.subscriptionTimer = setInterval(async () => {
+          if (this.user) {
+            await this.loadAccessStatus();
+            await this.loadSubscription();
+            this.updateHeaderBadge();
+          }
         }, SUBSCRIPTION_CHECK_INTERVAL);
-        document.addEventListener('visibilitychange', () => {
+        document.addEventListener('visibilitychange', async () => {
           if (document.visibilityState === 'visible' && this.user) {
-            this.loadSubscription();
+            await this.loadAccessStatus();
+            await this.loadSubscription();
+            this.updateHeaderBadge();
           }
         });
+      }
+
+      async loadAccessStatus() {
+        if (!this.user) {
+          this.accessInfo = { access: false, is_pro: false, is_admin: false, can_create_quote: false };
+          return;
+        }
+        try {
+          const { data, error } = await supabaseClient.rpc('check_access');
+          if (error) {
+            console.error('Erro ao verificar acesso:', error);
+            this.accessInfo = { access: false, is_pro: false, is_admin: false, can_create_quote: false };
+          } else {
+            this.accessInfo = data || { access: false };
+          }
+        } catch (e) {
+          console.error('Erro RPC check_access:', e);
+          this.accessInfo = { access: false, is_pro: false, is_admin: false, can_create_quote: false };
+        }
       }
 
       async loadSubscription() {
@@ -203,30 +244,20 @@
             .limit(1)
             .maybeSingle();
 
-          if (error || !data) {
-            this.subscription = null;
-            this.updateHeaderBadge();
-            return;
-          }
+          if (error || !data) { this.subscription = null; return; }
 
           const now = new Date();
           const end = new Date(data.end_date);
           const isActive = data.status === 'active' && end > now;
-
           this.subscription = {
             ...data,
             isActive,
             daysRemaining: isActive ? Math.ceil((end - now) / (1000 * 60 * 60 * 24)) : 0,
           };
-          this.updateHeaderBadge();
         } catch (e) {
           console.error('Erro ao carregar assinatura:', e);
           this.subscription = null;
         }
-      }
-
-      isPro() {
-        return this.subscription?.isActive === true;
       }
 
       loadLocalFallback() {
@@ -239,7 +270,6 @@
           this.profile = { ...DEFAULT_PROFILE };
           this.clients = []; this.quotes = []; this.receipts = [];
         }
-        if (!this.profile.plan) this.profile.plan = 'free';
       }
 
       async loadUserDataFromSupabase() {
@@ -250,9 +280,8 @@
           if (profErr) console.error('Erro ao buscar perfil:', profErr);
 
           if (!profileData) {
-            const newProf = { id: this.user.id, email: this.user.email, plan: 'free', ...DEFAULT_PROFILE };
-            delete newProf.id_default;
-            const { error: insErr } = await supabaseClient.from('profiles').insert([{ ...newProf, id: this.user.id }]);
+            const newProf = { id: this.user.id, email: this.user.email, ...DEFAULT_PROFILE };
+            const { error: insErr } = await supabaseClient.from('profiles').insert([newProf]);
             if (insErr) console.error('Erro ao criar perfil:', insErr);
             profileData = newProf;
           }
@@ -267,20 +296,17 @@
             profession: profileData.profession || 'Prestador',
             pixKey: profileData.pix_key || '',
             footerTerms: profileData.footer_terms || DEFAULT_PROFILE.footerTerms,
-            plan: profileData.plan || 'free'
           };
 
-          const { data: clientsData, error: cliErr } = await supabaseClient
+          const { data: clientsData } = await supabaseClient
             .from('clients').select('*').eq('user_id', this.user.id).order('name', { ascending: true });
-          if (cliErr) console.error('Erro ao carregar clientes:', cliErr);
           this.clients = (clientsData || []).map(c => ({
             id: c.id, name: c.name || '', phone: c.phone || '',
             email: c.email || '', address: c.address || ''
           }));
 
-          const { data: quotesData, error: qErr } = await supabaseClient
+          const { data: quotesData } = await supabaseClient
             .from('quotes').select('*').eq('user_id', this.user.id).order('number', { ascending: false });
-          if (qErr) console.error('Erro ao carregar orçamentos:', qErr);
           this.quotes = (quotesData || []).map(q => ({
             id: q.id, number: q.number, clientName: q.client_name || '',
             date: q.date, validityDays: q.validity_days || 7,
@@ -296,9 +322,8 @@
             notes: q.notes || ''
           }));
 
-          const { data: receiptsData, error: rErr } = await supabaseClient
+          const { data: receiptsData } = await supabaseClient
             .from('receipts').select('*').eq('user_id', this.user.id).order('number', { ascending: false });
-          if (rErr) console.error('Erro ao carregar recibos:', rErr);
           this.receipts = (receiptsData || []).map(r => ({
             id: r.id, number: r.number, payerName: r.payer_name || '',
             receiverName: r.receiver_name || '', date: r.date,
@@ -312,12 +337,13 @@
       }
 
       async saveState() {
+        // Salva apenas em localStorage (cache visual). O servidor é a fonte de verdade.
         try {
           localStorage.setItem('orca_profile', JSON.stringify(this.profile));
           localStorage.setItem('orca_clients', JSON.stringify(this.clients));
           localStorage.setItem('orca_quotes', JSON.stringify(this.quotes));
           localStorage.setItem('orca_receipts', JSON.stringify(this.receipts));
-        } catch (e) { console.warn('Falha ao salvar no localStorage:', e); }
+        } catch (e) { /* ignore */ }
 
         if (this.user) {
           const { error } = await supabaseClient.from('profiles').update({
@@ -333,17 +359,20 @@
       }
 
       updateHeaderBadge() {
-        const isPro = this.isPro();
         const badgeText = document.getElementById('plan-text');
         const badgeBtn = document.getElementById('plan-badge');
         const authBtn = document.getElementById('auth-btn');
         if (!badgeText) return;
 
-        if (isPro) {
+        if (this.isAdmin()) {
+          badgeText.textContent = 'Admin';
+          badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-400/20 text-purple-300 border border-purple-400/40';
+        } else if (this.isPro()) {
           badgeText.textContent = 'Plano Pro';
           badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-400/20 text-amber-300 border border-amber-400/40';
         } else {
-          badgeText.textContent = `Grátis (${this.quotes.length}/5)`;
+          const qc = this.accessInfo?.quote_count ?? this.quotes.length;
+          badgeText.textContent = `Grátis (${qc}/1)`;
           badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition-all';
         }
 
@@ -361,6 +390,7 @@
         await supabaseClient.auth.signOut();
         this.user = null;
         this.profile = { ...DEFAULT_PROFILE };
+        this.accessInfo = null;
         this.subscription = null;
         this.clients = []; this.quotes = []; this.receipts = [];
         try {
@@ -385,7 +415,7 @@
         setTimeout(() => {
           toast.classList.add('translate-y-[-100px]', 'opacity-0');
           toast.classList.remove('translate-y-0', 'opacity-100');
-        }, 3000);
+        }, 3500);
       }
 
       navigate(tab, params = {}) {
@@ -416,6 +446,8 @@
         const totalSent = this.quotes.filter(q => q.status === 'Enviado' || q.status === 'Aprovado').length;
         const totalApproved = this.quotes.filter(q => q.status === 'Aprovado').length;
         const recentQuotes = [...this.quotes].slice(0, 5);
+        const quoteCount = this.accessInfo?.quote_count ?? this.quotes.length;
+        const quoteLimitText = this.isPro() || this.isAdmin() ? 'Ilimitado' : `${quoteCount}/1`;
 
         return `
           <div class="space-y-6 animate-fade-in">
@@ -444,8 +476,8 @@
               <div class="col-span-2 sm:col-span-1 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
                 <div class="flex items-center justify-between text-slate-500 mb-2"><span class="text-xs font-semibold uppercase tracking-wide">Uso do Plano</span><div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center"><i class="fa-solid fa-chart-simple"></i></div></div>
                 <div>
-                  <div class="flex items-center justify-between"><p class="text-xl sm:text-2xl font-black text-slate-900">${this.isPro() ? 'Ilimitado' : this.quotes.length + '/5'}</p><span class="text-xs font-bold ${this.isPro() ? 'text-amber-500' : 'text-slate-400'}">${this.isPro() ? 'Pro' : 'Grátis'}</span></div>
-                  ${!this.isPro() ? `<div class="w-full bg-slate-100 rounded-full h-2 mt-2 overflow-hidden"><div class="bg-emerald-500 h-2 rounded-full" style="width: ${Math.min(100, (this.quotes.length/5)*100)}%"></div></div>` : ''}
+                  <div class="flex items-center justify-between"><p class="text-xl sm:text-2xl font-black text-slate-900">${quoteLimitText}</p><span class="text-xs font-bold ${this.isPro() || this.isAdmin() ? 'text-amber-500' : 'text-slate-400'}">${this.isAdmin() ? 'Admin' : (this.isPro() ? 'Pro' : 'Grátis')}</span></div>
+                  ${!this.isPro() && !this.isAdmin() ? `<div class="w-full bg-slate-100 rounded-full h-2 mt-2 overflow-hidden"><div class="bg-emerald-500 h-2 rounded-full" style="width: ${quoteCount >= 1 ? 100 : 0}%"></div></div>` : ''}
                 </div>
               </div>
             </div>
@@ -501,11 +533,46 @@
         `;
       }
 
-      startNewQuote() {
-        if (!this.isPro() && this.quotes.length >= 5) {
-          this.openPaywall();
+      // =============== CRIAÇÃO DE ORÇAMENTO (SERVIDOR DECIDE) ===============
+      async startNewQuote() {
+        if (!this.user) {
+          this.showToast('Entre com sua conta para criar orçamentos.', 'error');
+          this.openAuthModal();
           return;
         }
+
+        // Sempre recarrega o status do servidor antes de decidir
+        await this.loadAccessStatus();
+
+        if (this.isPro()) {
+          // Pro/Admin: cria direto
+          this._createNewQuote();
+          return;
+        }
+
+        // Usuário gratuito: tentar consumir o teste
+        try {
+          const { data, error } = await supabaseClient.rpc('consume_free_trial');
+          if (error) {
+            console.error('Erro consume_free_trial:', error);
+            this.showToast('Não foi possível liberar o orçamento. Tente novamente.', 'error');
+            return;
+          }
+          if (data && data.success) {
+            this.accessInfo.can_create_quote = true;
+            this._createNewQuote();
+          } else {
+            this.accessInfo.can_create_quote = false;
+            this.showToast(data?.error || 'Você já utilizou seu orçamento gratuito.', 'error');
+            this.openPaywall();
+          }
+        } catch (e) {
+          console.error(e);
+          this.showToast('Erro de conexão. Tente novamente.', 'error');
+        }
+      }
+
+      _createNewQuote() {
         const nextNum = this.quotes.length > 0 ? Math.max(...this.quotes.map(q => q.number || 1000)) + 1 : 1001;
         this.activeQuote = {
           id: this.generateId(), number: nextNum,
@@ -650,34 +717,35 @@
 
       async saveActiveQuote(notify = false) {
         if (!this.activeQuote) return false;
-        this.recalculateQuoteTotals();
-        const exists = this.quotes.some(q => q.id === this.activeQuote.id);
-        if (!this.isPro() && !exists && this.quotes.length >= 5) {
-          this.openPaywall();
+        if (!this.user) {
+          this.showToast('Entre com sua conta para salvar.', 'error');
+          this.openAuthModal();
           return false;
         }
+        this.recalculateQuoteTotals();
+
+        const exists = this.quotes.some(q => q.id === this.activeQuote.id);
         const index = this.quotes.findIndex(q => q.id === this.activeQuote.id);
         if (index >= 0) this.quotes[index] = { ...this.activeQuote };
         else this.quotes.unshift({ ...this.activeQuote });
 
-        if (this.user) {
-          const payload = {
-            id: this.activeQuote.id, user_id: this.user.id,
-            number: this.activeQuote.number, client_name: this.activeQuote.clientName,
-            date: this.activeQuote.date, validity_days: this.activeQuote.validityDays,
-            status: this.activeQuote.status, items: this.activeQuote.items,
-            discount_type: this.activeQuote.discountType,
-            discount_value: this.activeQuote.discountValue,
-            extra_fee: this.activeQuote.extraFee,
-            subtotal: this.activeQuote.subtotal, total: this.activeQuote.total,
-            payment_method: this.activeQuote.paymentMethod,
-            timeframe: this.activeQuote.timeframe, notes: this.activeQuote.notes
-          };
-          const { error } = await supabaseClient.from('quotes').upsert(payload, { onConflict: 'id' });
-          if (error) {
-            console.error('Erro ao salvar orçamento no Supabase:', error);
-            this.showToast('Falha ao sincronizar. Dados salvos localmente.', 'error');
-          }
+        const payload = {
+          id: this.activeQuote.id, user_id: this.user.id,
+          number: this.activeQuote.number, client_name: this.activeQuote.clientName,
+          date: this.activeQuote.date, validity_days: this.activeQuote.validityDays,
+          status: this.activeQuote.status, items: this.activeQuote.items,
+          discount_type: this.activeQuote.discountType,
+          discount_value: this.activeQuote.discountValue,
+          extra_fee: this.activeQuote.extraFee,
+          subtotal: this.activeQuote.subtotal, total: this.activeQuote.total,
+          payment_method: this.activeQuote.paymentMethod,
+          timeframe: this.activeQuote.timeframe, notes: this.activeQuote.notes
+        };
+        const { error } = await supabaseClient.from('quotes').upsert(payload, { onConflict: 'id' });
+        if (error) {
+          console.error('Erro ao salvar orçamento no Supabase:', error);
+          this.showToast('Falha ao sincronizar. Tente novamente.', 'error');
+          return false;
         }
         await this.saveState();
         if (notify) this.showToast('Orçamento salvo com sucesso!');
@@ -687,10 +755,8 @@
       async deleteQuote(id) {
         if (!confirm('Deseja realmente excluir este orçamento?')) return;
         this.quotes = this.quotes.filter(q => q.id !== id);
-        if (this.user) {
-          const { error } = await supabaseClient.from('quotes').delete().eq('id', id);
-          if (error) { console.error(error); this.showToast('Erro ao excluir na nuvem.', 'error'); return; }
-        }
+        const { error } = await supabaseClient.from('quotes').delete().eq('id', id);
+        if (error) { console.error(error); this.showToast('Erro ao excluir.', 'error'); return; }
         await this.saveState();
         this.showToast('Orçamento excluído.');
         this.navigate('quotes');
@@ -822,17 +888,16 @@
           paymentMethod: 'Pix', notes: ''
         };
         this.receipts.unshift(newR);
-        if (this.user) {
-          const { error } = await supabaseClient.from('receipts').insert([{
-            id: newR.id, user_id: this.user.id, number: newR.number,
-            payer_name: newR.payerName, receiver_name: newR.receiverName,
-            date: newR.date, amount: newR.amount, description: newR.description,
-            payment_method: newR.paymentMethod, notes: newR.notes
-          }]);
-          if (error) {
-            console.error('Erro ao salvar recibo:', error);
-            this.showToast('Falha ao salvar recibo na nuvem.', 'error');
-          }
+        const { error } = await supabaseClient.from('receipts').insert([{
+          id: newR.id, user_id: this.user.id, number: newR.number,
+          payer_name: newR.payerName, receiver_name: newR.receiverName,
+          date: newR.date, amount: newR.amount, description: newR.description,
+          payment_method: newR.paymentMethod, notes: newR.notes
+        }]);
+        if (error) {
+          console.error('Erro ao salvar recibo:', error);
+          this.showToast('Falha ao salvar recibo.', 'error');
+          return;
         }
         await this.saveState();
         this.closeModal();
@@ -843,10 +908,8 @@
       async deleteReceipt(id) {
         if (!confirm('Deseja excluir este recibo?')) return;
         this.receipts = this.receipts.filter(r => r.id !== id);
-        if (this.user) {
-          const { error } = await supabaseClient.from('receipts').delete().eq('id', id);
-          if (error) { console.error(error); this.showToast('Erro ao excluir na nuvem.', 'error'); return; }
-        }
+        const { error } = await supabaseClient.from('receipts').delete().eq('id', id);
+        if (error) { console.error(error); this.showToast('Erro ao excluir.', 'error'); return; }
         await this.saveState();
         this.showToast('Recibo excluído.');
         this.navigate('receipts');
@@ -903,7 +966,7 @@
       }
 
       openClientModal() {
-        if (!this.isPro() && this.clients.length >= 3) { this.openPaywall(); return; }
+        if (!this.isPro()) { this.openPaywall(); return; }
         const modal = document.getElementById('modal-container');
         document.getElementById('modal-content').innerHTML = `
           <div class="p-6 space-y-4">
@@ -924,7 +987,7 @@
 
       async saveClient(e) {
         e.preventDefault();
-        if (!this.isPro() && this.clients.length >= 3) { this.openPaywall(); return; }
+        if (!this.isPro()) { this.openPaywall(); return; }
         const newC = {
           id: this.generateId(),
           name: document.getElementById('cli-name').value.trim(),
@@ -933,15 +996,14 @@
           address: document.getElementById('cli-address').value.trim()
         };
         this.clients.push(newC);
-        if (this.user) {
-          const { error } = await supabaseClient.from('clients').insert([{
-            id: newC.id, user_id: this.user.id, name: newC.name,
-            phone: newC.phone, email: newC.email, address: newC.address
-          }]);
-          if (error) {
-            console.error('Erro ao salvar cliente:', error);
-            this.showToast('Falha ao salvar cliente na nuvem.', 'error');
-          }
+        const { error } = await supabaseClient.from('clients').insert([{
+          id: newC.id, user_id: this.user.id, name: newC.name,
+          phone: newC.phone, email: newC.email, address: newC.address
+        }]);
+        if (error) {
+          console.error('Erro ao salvar cliente:', error);
+          this.showToast('Falha ao salvar cliente.', 'error');
+          return;
         }
         await this.saveState();
         this.closeModal();
@@ -952,10 +1014,8 @@
       async deleteClient(id) {
         if (!confirm('Deseja excluir este cliente?')) return;
         this.clients = this.clients.filter(c => c.id !== id);
-        if (this.user) {
-          const { error } = await supabaseClient.from('clients').delete().eq('id', id);
-          if (error) { console.error(error); this.showToast('Erro ao excluir na nuvem.', 'error'); return; }
-        }
+        const { error } = await supabaseClient.from('clients').delete().eq('id', id);
+        if (error) { console.error(error); this.showToast('Erro ao excluir.', 'error'); return; }
         await this.saveState();
         this.showToast('Cliente excluído.');
         this.navigate('clients');
@@ -982,7 +1042,7 @@
             ${this.subscription ? `
               <div class="bg-white p-5 rounded-xl border border-slate-200 space-y-2">
                 <h3 class="font-bold text-slate-900 text-sm">Sua Assinatura</h3>
-                <p class="text-xs text-slate-600">Plano: <strong>${this.subscription.plan_type === 'anual' ? 'Anual' : 'Mensal'}</strong></p>
+                <p class="text-xs text-slate-600">Plano: <strong>${this.subscription.plan_type === 'yearly' ? 'Anual' : 'Mensal'}</strong></p>
                 <p class="text-xs text-slate-600">Status: <strong>${this.subscription.status === 'active' ? 'Ativo' : this.subscription.status}</strong></p>
                 <p class="text-xs text-slate-600">Válido até: <strong>${this.formatDate(this.subscription.end_date?.split('T')[0])}</strong></p>
                 ${this.subscription.isActive && this.subscription.daysRemaining <= 7 ? `<p class="text-xs text-amber-600 font-bold">⚠️ Sua assinatura expira em ${this.subscription.daysRemaining} dia(s). Renove agora!</p>` : ''}
@@ -1030,7 +1090,7 @@
         const email = document.getElementById('auth-email').value.trim();
         const pass = document.getElementById('auth-pass').value;
         const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
-        if (error) { alert('Erro ao entrar: ' + error.message); return; }
+        if (error) { this.showToast('Erro ao entrar: ' + error.message, 'error'); return; }
         this.user = data.user;
         this.closeModal();
         this.showToast('Login realizado com sucesso!');
@@ -1040,17 +1100,17 @@
       async handleSignUp() {
         const email = document.getElementById('auth-email').value.trim();
         const pass = document.getElementById('auth-pass').value;
-        if (!email || !pass) { alert('Preencha e-mail e senha.'); return; }
-        if (pass.length < 6) { alert('A senha deve ter pelo menos 6 caracteres.'); return; }
+        if (!email || !pass) { this.showToast('Preencha e-mail e senha.', 'error'); return; }
+        if (pass.length < 6) { this.showToast('A senha deve ter pelo menos 6 caracteres.', 'error'); return; }
         const { data, error } = await supabaseClient.auth.signUp({ email, password: pass });
-        if (error) { alert('Erro no cadastro: ' + error.message); return; }
+        if (error) { this.showToast('Erro no cadastro: ' + error.message, 'error'); return; }
         if (data.session) {
           this.user = data.user;
           this.closeModal();
           this.showToast('Conta criada e sessão iniciada!');
           await this.init();
         } else {
-          alert('Cadastro realizado! Verifique seu e-mail para confirmar antes de entrar.');
+          this.showToast('Cadastro realizado! Verifique seu e-mail para confirmar.', 'success');
         }
       }
 
@@ -1102,6 +1162,7 @@
     let app;
     window.addEventListener('DOMContentLoaded', async () => {
       app = new OrçaJaApp();
+      await window.supabaseReady || null;
       await app.init();
     });
   </script>
