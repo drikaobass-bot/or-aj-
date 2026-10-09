@@ -4,37 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Orça Já - Gerador de Orçamentos e Recibos</title>
-
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
   <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e', 600: '#16a34a',
-              700: '#15803d', 800: '#166534',
-            }
-          },
-          fontFamily: { sans: ['Inter', 'sans-serif'] }
-        }
-      }
-    }
+    tailwind.config = { darkMode: 'class', theme: { extend: { colors: { brand: { 50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e', 600: '#16a34a', 700: '#15803d', 800: '#166534' } }, fontFamily: { sans: ['Inter', 'sans-serif'] } } } }
   </script>
-
   <style>
     body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #f1f5f9; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     .a4-page { min-height: 297mm; width: 100%; max-width: 210mm; margin: 0 auto; background: white; page-break-after: always; }
-
     @media print {
       html, body { background: white !important; margin: 0 !important; padding: 0 !important; height: auto !important; overflow: visible !important; }
       #app, #toast, .no-print, header, nav, button:not(#printable-document button) { display: none !important; }
@@ -45,59 +28,35 @@
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen pb-20 md:pb-6">
-
   <div id="app" class="max-w-4xl mx-auto min-h-screen flex flex-col bg-white shadow-xl md:my-4 md:rounded-2xl overflow-hidden border border-slate-200">
-
     <header class="bg-slate-900 text-white px-4 py-3 sticky top-0 z-30 flex items-center justify-between border-b border-slate-800 shadow-sm">
       <div class="flex items-center space-x-3">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-green-400 flex items-center justify-center font-bold text-slate-900 shadow-md">
-          <i class="fa-solid fa-bolt text-lg"></i>
-        </div>
-        <div>
-          <h1 class="font-extrabold text-lg tracking-tight text-white leading-none">Orça Já</h1>
-          <p class="text-[11px] text-slate-400 font-medium">Orçamentos & Recibos em 1 min</p>
-        </div>
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-green-400 flex items-center justify-center font-bold text-slate-900 shadow-md"><i class="fa-solid fa-bolt text-lg"></i></div>
+        <div><h1 class="font-extrabold text-lg tracking-tight text-white leading-none">Orça Já</h1><p class="text-[11px] text-slate-400 font-medium">Orçamentos & Recibos em 1 min</p></div>
       </div>
       <div class="flex items-center space-x-2">
         <button onclick="if(window.app) app.openPaywall()" id="plan-badge" class="flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition-all">
-          <i class="fa-solid fa-crown text-[10px] text-amber-400"></i>
-          <span id="plan-text">Carregando…</span>
+          <i class="fa-solid fa-crown text-[10px] text-amber-400"></i><span id="plan-text">Carregando…</span>
         </button>
         <button onclick="if(window.app) app.openAuthModal()" id="auth-btn" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-all">Entrar</button>
       </div>
     </header>
-
     <main id="main-content" class="flex-1 p-4 md:p-6 overflow-y-auto"></main>
-
     <nav class="fixed bottom-0 left-0 right-0 max-w-4xl mx-auto bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 px-2 py-1.5 flex justify-around items-center md:sticky md:border-t-0 md:bg-transparent">
-      <button onclick="if(window.app) app.navigate('dashboard')" id="nav-dashboard" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors">
-        <i class="fa-solid fa-chart-pie text-lg mb-0.5"></i><span>Início</span>
-      </button>
-      <button onclick="if(window.app) app.navigate('quotes')" id="nav-quotes" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors">
-        <i class="fa-solid fa-file-invoice text-lg mb-0.5"></i><span>Orçamentos</span>
-      </button>
-      <button onclick="if(window.app) app.startNewQuote()" class="w-12 h-12 -mt-5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 active:scale-95 transition-all">
-        <i class="fa-solid fa-plus text-xl"></i>
-      </button>
-      <button onclick="if(window.app) app.navigate('receipts')" id="nav-receipts" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors">
-        <i class="fa-solid fa-receipt text-lg mb-0.5"></i><span>Recibos</span>
-      </button>
-      <button onclick="if(window.app) app.navigate('clients')" id="nav-clients" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors">
-        <i class="fa-solid fa-users text-lg mb-0.5"></i><span>Clientes</span>
-      </button>
-      <button onclick="if(window.app) app.navigate('settings')" id="nav-settings" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors">
-        <i class="fa-solid fa-gear text-lg mb-0.5"></i><span>Ajustes</span>
-      </button>
+      <button onclick="if(window.app) app.navigate('dashboard')" id="nav-dashboard" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors"><i class="fa-solid fa-chart-pie text-lg mb-0.5"></i><span>Início</span></button>
+      <button onclick="if(window.app) app.navigate('quotes')" id="nav-quotes" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors"><i class="fa-solid fa-file-invoice text-lg mb-0.5"></i><span>Orçamentos</span></button>
+      <button onclick="if(window.app) app.startNewQuote()" class="w-12 h-12 -mt-5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 active:scale-95 transition-all"><i class="fa-solid fa-plus text-xl"></i></button>
+      <button onclick="if(window.app) app.navigate('receipts')" id="nav-receipts" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors"><i class="fa-solid fa-receipt text-lg mb-0.5"></i><span>Recibos</span></button>
+      <button onclick="if(window.app) app.navigate('clients')" id="nav-clients" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors"><i class="fa-solid fa-users text-lg mb-0.5"></i><span>Clientes</span></button>
+      <button onclick="if(window.app) app.navigate('settings')" id="nav-settings" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors"><i class="fa-solid fa-gear text-lg mb-0.5"></i><span>Ajustes</span></button>
     </nav>
   </div>
-
   <div id="toast" class="fixed top-16 right-4 z-50 transform translate-y-[-100px] opacity-0 transition-all duration-300 pointer-events-none">
     <div class="bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3 border border-slate-700 max-w-sm">
       <div id="toast-icon" class="text-emerald-400 text-lg"><i class="fa-solid fa-circle-check"></i></div>
       <p id="toast-message" class="text-sm font-medium">Operação realizada!</p>
     </div>
   </div>
-
   <div id="modal-container" onclick="if(window.app) app.handleModalBackdropClick(event)" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
     <div id="modal-content" onclick="event.stopPropagation()" class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transform transition-all"></div>
   </div>
@@ -107,6 +66,16 @@
     const SUPABASE_URL = 'https://ecxgdndfyazyyhhctlgc.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjeGdkbmRmeWF6eXloaGN0bGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1NTA1NjUsImV4cCI6MjEwNzEyNjU2NX0.Heypx90Tvayc1c6-Y0T_YiBXNZvs1-BOEFxPF_YBNnM';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const VISITOR_KEY = 'orca_visitor_id';
+    function getVisitorId() {
+      let id = localStorage.getItem(VISITOR_KEY);
+      if (!id) {
+        id = 'v_' + (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36));
+        localStorage.setItem(VISITOR_KEY, id);
+      }
+      return id;
+    }
   </script>
 
   <script>
@@ -120,12 +89,8 @@
     const SUBSCRIPTION_CHECK_INTERVAL = 5 * 60 * 1000;
 
     const EMPTY_ACCESS = {
-      access: false,
-      is_pro: false,
-      is_admin: false,
-      has_free_trial: false,
-      can_create_quote: false,
-      quote_count: 0
+      access: false, is_pro: false, is_admin: false, has_free_trial: false,
+      can_create_quote: false, quote_count: 0, anonymous: true
     };
 
     class OrçaJaApp {
@@ -141,6 +106,7 @@
         this.activeQuote = null;
         this.subscriptionTimer = null;
         this.backendWarned = false;
+        this.visitorId = getVisitorId();
       }
 
       generateId() {
@@ -152,46 +118,17 @@
         });
       }
 
-      formatCurrency(val) {
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
-      }
-      formatDate(str) {
-        if (!str) return '';
-        const parts = String(str).split('-');
-        if (parts.length !== 3) return str;
-        const [y, m, d] = parts;
-        return `${d}/${m}/${y}`;
-      }
-      escapeHTML(str) {
-        if (str == null) return '';
-        return String(str).replace(/[&<>'"]/g, tag => ({
-          '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-        }[tag] || tag));
-      }
+      formatCurrency(val) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0); }
+      formatDate(str) { if (!str) return ''; const parts = String(str).split('-'); if (parts.length !== 3) return str; const [y, m, d] = parts; return `${d}/${m}/${y}`; }
+      escapeHTML(str) { if (str == null) return ''; return String(str).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)); }
 
-      // =============== ESTADO DE ACESSO ===============
-      isPro() {
-        return !!(this.accessInfo && (this.accessInfo.is_pro || this.accessInfo.is_admin));
-      }
-      isAdmin() {
-        return !!(this.accessInfo && this.accessInfo.is_admin);
-      }
-      hasFullAccess() {
-        if (this.isPro()) return true;
-        return !!(this.accessInfo && this.accessInfo.has_free_trial === true);
-      }
+      isPro() { return !!(this.accessInfo && (this.accessInfo.is_pro || this.accessInfo.is_admin)); }
+      isAdmin() { return !!(this.accessInfo && this.accessInfo.is_admin); }
+      hasFullAccess() { if (this.isPro()) return true; return !!(this.accessInfo && this.accessInfo.has_free_trial === true); }
 
       requireFullAccess(actionLabel = 'esta função') {
-        if (!this.user) {
-          this.showToast('Entre com sua conta para continuar.', 'error');
-          this.openAuthModal();
-          return false;
-        }
-        if (!this.hasFullAccess()) {
-          this.showToast('Assine o plano Pro para ' + actionLabel + '.', 'error');
-          this.openPaywall();
-          return false;
-        }
+        if (!this.user && !this.hasFullAccess()) { this.showToast('Entre com sua conta para continuar.', 'error'); this.openAuthModal(); return false; }
+        if (!this.hasFullAccess()) { this.showToast('Assine o plano Pro para ' + actionLabel + '.', 'error'); this.openPaywall(); return false; }
         return true;
       }
 
@@ -201,18 +138,16 @@
           this.user = session?.user || null;
           if (this.user) {
             await this.loadUserDataFromSupabase();
-            await this.loadAccessStatus();
             await this.loadSubscription();
           } else {
             this.loadLocalFallback();
-            this.accessInfo = { ...EMPTY_ACCESS };
           }
+          await this.loadAccessStatus();
           this.updateHeaderBadge();
           this.navigate('dashboard');
           this.startSubscriptionWatcher();
         } catch (e) {
-          console.error('Erro na inicialização:', e);
-          this.loadLocalFallback();
+          console.error('Erro init:', e);
           this.accessInfo = { ...EMPTY_ACCESS };
           this.updateHeaderBadge();
           this.navigate('dashboard');
@@ -222,37 +157,31 @@
       startSubscriptionWatcher() {
         if (this.subscriptionTimer) clearInterval(this.subscriptionTimer);
         this.subscriptionTimer = setInterval(async () => {
-          if (this.user) {
-            await this.loadAccessStatus();
-            await this.loadSubscription();
-            this.updateHeaderBadge();
-          }
+          await this.loadAccessStatus();
+          if (this.user) await this.loadSubscription();
+          this.updateHeaderBadge();
         }, SUBSCRIPTION_CHECK_INTERVAL);
         document.addEventListener('visibilitychange', async () => {
-          if (document.visibilityState === 'visible' && this.user) {
+          if (document.visibilityState === 'visible') {
             await this.loadAccessStatus();
-            await this.loadSubscription();
+            if (this.user) await this.loadSubscription();
             this.updateHeaderBadge();
           }
         });
       }
 
       async loadAccessStatus() {
-        if (!this.user) {
-          this.accessInfo = { ...EMPTY_ACCESS };
-          return;
-        }
         try {
-          const { data, error } = await supabaseClient.rpc('check_access');
+          // Se autenticado, chama sem visitor_id. Se anônimo, chama com visitor_id.
+          const params = this.user ? { visitor_id: null } : { visitor_id: this.visitorId };
+          const { data, error } = await supabaseClient.rpc('check_access', params);
           if (error) {
             console.error('Erro ao verificar acesso:', error);
-            // Detecta se a função RPC não existe no Supabase
             const msg = (error.message || '').toLowerCase();
             if (!this.backendWarned && (msg.includes('function') || msg.includes('not found') || msg.includes('does not exist'))) {
               this.backendWarned = true;
               this.showToast('Backend não configurado. Rode o SQL no Supabase.', 'error');
             }
-            if (!this.accessInfo) this.accessInfo = { ...EMPTY_ACCESS };
             return;
           }
           if (data && typeof data === 'object') {
@@ -264,42 +193,24 @@
               can_create_quote: !!data.can_create_quote,
               quote_count: Number(data.quote_count) || 0,
               plan_type: data.plan_type,
-              end_date: data.end_date
+              end_date: data.end_date,
+              anonymous: !!data.anonymous
             };
-          } else {
-            this.accessInfo = { ...EMPTY_ACCESS };
           }
         } catch (e) {
           console.error('Erro RPC check_access:', e);
-          if (!this.accessInfo) this.accessInfo = { ...EMPTY_ACCESS };
         }
       }
 
       async loadSubscription() {
         if (!this.user) { this.subscription = null; return; }
         try {
-          const { data, error } = await supabaseClient
-            .from('subscriptions')
-            .select('*')
-            .eq('user_id', this.user.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (error || !data) { this.subscription = null; return; }
-
+          const { data } = await supabaseClient.from('subscriptions').select('*').eq('user_id', this.user.id).order('created_at', { ascending: false }).limit(1).maybeSingle();
+          if (!data) { this.subscription = null; return; }
           const now = new Date();
           const end = new Date(data.end_date);
-          const isActive = data.status === 'active' && end > now;
-          this.subscription = {
-            ...data,
-            isActive,
-            daysRemaining: isActive ? Math.ceil((end - now) / (1000 * 60 * 60 * 24)) : 0,
-          };
-        } catch (e) {
-          console.error('Erro ao carregar assinatura:', e);
-          this.subscription = null;
-        }
+          this.subscription = { ...data, isActive: data.status === 'active' && end > now, daysRemaining: (data.status === 'active' && end > now) ? Math.ceil((end - now) / (1000 * 60 * 60 * 24)) : 0 };
+        } catch (e) { this.subscription = null; }
       }
 
       loadLocalFallback() {
@@ -308,84 +219,33 @@
           this.clients = JSON.parse(localStorage.getItem('orca_clients')) || [];
           this.quotes = JSON.parse(localStorage.getItem('orca_quotes')) || [];
           this.receipts = JSON.parse(localStorage.getItem('orca_receipts')) || [];
-        } catch (e) {
-          this.profile = { ...DEFAULT_PROFILE };
-          this.clients = []; this.quotes = []; this.receipts = [];
-        }
+        } catch (e) { this.profile = { ...DEFAULT_PROFILE }; this.clients = []; this.quotes = []; this.receipts = []; }
       }
 
       async loadUserDataFromSupabase() {
         if (!this.user) return;
         try {
-          let { data: profileData, error: profErr } = await supabaseClient
-            .from('profiles').select('*').eq('id', this.user.id).maybeSingle();
-
-          if (profErr) console.error('Erro ao buscar perfil:', profErr);
-
+          let { data: profileData } = await supabaseClient.from('profiles').select('*').eq('id', this.user.id).maybeSingle();
           if (!profileData) {
-            const newProf = {
-              id: this.user.id,
-              email: this.user.email,
-              name: '', trade_name: '', document: '', phone: '',
-              address: '', profession: 'Prestador de Serviços',
-              pix_key: '', footer_terms: DEFAULT_PROFILE.footerTerms
-            };
+            const newProf = { id: this.user.id, email: this.user.email };
             const { error: insErr } = await supabaseClient.from('profiles').upsert([newProf], { onConflict: 'id' });
             if (!insErr) profileData = newProf;
           }
-
           if (profileData) {
             this.profile = {
-              name: profileData.name || '',
-              tradeName: profileData.trade_name || '',
-              document: profileData.document || '',
-              phone: profileData.phone || '',
-              email: profileData.email || this.user.email || '',
-              address: profileData.address || '',
-              profession: profileData.profession || 'Prestador de Serviços',
-              pixKey: profileData.pix_key || '',
+              name: profileData.name || '', tradeName: profileData.trade_name || '', document: profileData.document || '',
+              phone: profileData.phone || '', email: profileData.email || this.user.email || '', address: profileData.address || '',
+              profession: profileData.profession || 'Prestador de Serviços', pixKey: profileData.pix_key || '',
               footerTerms: profileData.footer_terms || DEFAULT_PROFILE.footerTerms,
             };
-          } else {
-            this.profile = { ...DEFAULT_PROFILE, email: this.user.email || '' };
           }
-
-          const { data: clientsData } = await supabaseClient
-            .from('clients').select('*').eq('user_id', this.user.id).order('name', { ascending: true });
-          this.clients = (clientsData || []).map(c => ({
-            id: c.id, name: c.name || '', phone: c.phone || '',
-            email: c.email || '', address: c.address || ''
-          }));
-
-          const { data: quotesData } = await supabaseClient
-            .from('quotes').select('*').eq('user_id', this.user.id).order('number', { ascending: false });
-          this.quotes = (quotesData || []).map(q => ({
-            id: q.id, number: q.number, clientName: q.client_name || '',
-            date: q.date, validityDays: q.validity_days || 7,
-            status: q.status || 'Rascunho',
-            items: Array.isArray(q.items) ? q.items : [],
-            discountType: q.discount_type || 'valor',
-            discountValue: Number(q.discount_value) || 0,
-            extraFee: Number(q.extra_fee) || 0,
-            subtotal: Number(q.subtotal) || 0,
-            total: Number(q.total) || 0,
-            paymentMethod: q.payment_method || '',
-            timeframe: q.timeframe || '',
-            notes: q.notes || ''
-          }));
-
-          const { data: receiptsData } = await supabaseClient
-            .from('receipts').select('*').eq('user_id', this.user.id).order('number', { ascending: false });
-          this.receipts = (receiptsData || []).map(r => ({
-            id: r.id, number: r.number, payerName: r.payer_name || '',
-            receiverName: r.receiver_name || '', date: r.date,
-            amount: Number(r.amount) || 0, description: r.description || '',
-            paymentMethod: r.payment_method || 'Pix', notes: r.notes || ''
-          }));
-        } catch (e) {
-          console.error('Erro ao carregar dados do Supabase:', e);
-          this.loadLocalFallback();
-        }
+          const { data: clientsData } = await supabaseClient.from('clients').select('*').eq('user_id', this.user.id).order('name', { ascending: true });
+          this.clients = (clientsData || []).map(c => ({ id: c.id, name: c.name || '', phone: c.phone || '', email: c.email || '', address: c.address || '' }));
+          const { data: quotesData } = await supabaseClient.from('quotes').select('*').eq('user_id', this.user.id).order('number', { ascending: false });
+          this.quotes = (quotesData || []).map(q => ({ id: q.id, number: q.number, clientName: q.client_name || '', date: q.date, validityDays: q.validity_days || 7, status: q.status || 'Rascunho', items: Array.isArray(q.items) ? q.items : [], discountType: q.discount_type || 'valor', discountValue: Number(q.discount_value) || 0, extraFee: Number(q.extra_fee) || 0, subtotal: Number(q.subtotal) || 0, total: Number(q.total) || 0, paymentMethod: q.payment_method || '', timeframe: q.timeframe || '', notes: q.notes || '' }));
+          const { data: receiptsData } = await supabaseClient.from('receipts').select('*').eq('user_id', this.user.id).order('number', { ascending: false });
+          this.receipts = (receiptsData || []).map(r => ({ id: r.id, number: r.number, payerName: r.payer_name || '', receiverName: r.receiver_name || '', date: r.date, amount: Number(r.amount) || 0, description: r.description || '', paymentMethod: r.payment_method || 'Pix', notes: r.notes || '' }));
+        } catch (e) { console.error('Erro loadUserData:', e); this.loadLocalFallback(); }
       }
 
       async saveState() {
@@ -394,24 +254,11 @@
           localStorage.setItem('orca_clients', JSON.stringify(this.clients));
           localStorage.setItem('orca_quotes', JSON.stringify(this.quotes));
           localStorage.setItem('orca_receipts', JSON.stringify(this.receipts));
-        } catch (e) { /* ignore */ }
-
+        } catch (e) {}
         if (this.user) {
-          const payload = {
-            id: this.user.id,
-            email: this.profile.email || this.user.email || '',
-            name: this.profile.name || '',
-            trade_name: this.profile.tradeName || '',
-            document: this.profile.document || '',
-            phone: this.profile.phone || '',
-            address: this.profile.address || '',
-            profession: this.profile.profession || '',
-            pix_key: this.profile.pixKey || '',
-            footer_terms: this.profile.footerTerms || ''
-          };
-          const { error } = await supabaseClient.from('profiles')
-            .upsert(payload, { onConflict: 'id' });
-          if (error) console.error('Erro ao salvar perfil:', error);
+          const payload = { id: this.user.id, email: this.profile.email || this.user.email || '', name: this.profile.name || '', trade_name: this.profile.tradeName || '', document: this.profile.document || '', phone: this.profile.phone || '', address: this.profile.address || '', profession: this.profile.profession || '', pix_key: this.profile.pixKey || '', footer_terms: this.profile.footerTerms || '' };
+          const { error } = await supabaseClient.from('profiles').upsert(payload, { onConflict: 'id' });
+          if (error) console.error('Erro saveState:', error);
         }
         this.updateHeaderBadge();
       }
@@ -422,9 +269,12 @@
         const authBtn = document.getElementById('auth-btn');
         if (!badgeText) return;
 
-        if (!this.user) {
-          badgeText.textContent = 'Plano Grátis';
-          badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition-all';
+        if (!this.user && !this.accessInfo?.has_free_trial) {
+          badgeText.textContent = 'Teste usado';
+          badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-400 border border-slate-500/30';
+        } else if (!this.user && this.accessInfo?.has_free_trial) {
+          badgeText.textContent = 'Teste Grátis';
+          badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30';
         } else if (this.isAdmin()) {
           badgeText.textContent = 'Admin';
           badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-400/20 text-purple-300 border border-purple-400/40';
@@ -433,19 +283,14 @@
           badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-400/20 text-amber-300 border border-amber-400/40';
         } else if (this.accessInfo?.has_free_trial) {
           badgeText.textContent = 'Teste Grátis';
-          badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition-all';
+          badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30';
         } else {
           badgeText.textContent = 'Grátis';
-          badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-400 border border-slate-500/30 hover:bg-slate-500/20 transition-all';
+          badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-400 border border-slate-500/30';
         }
 
-        if (this.user) {
-          authBtn.textContent = 'Sair';
-          authBtn.onclick = () => this.logout();
-        } else {
-          authBtn.textContent = 'Entrar';
-          authBtn.onclick = () => this.openAuthModal();
-        }
+        if (this.user) { authBtn.textContent = 'Sair'; authBtn.onclick = () => this.logout(); }
+        else { authBtn.textContent = 'Entrar'; authBtn.onclick = () => this.openAuthModal(); }
       }
 
       async logout() {
@@ -456,73 +301,50 @@
         this.accessInfo = { ...EMPTY_ACCESS };
         this.subscription = null;
         this.clients = []; this.quotes = []; this.receipts = [];
-        try {
-          localStorage.removeItem('orca_profile');
-          localStorage.removeItem('orca_clients');
-          localStorage.removeItem('orca_quotes');
-          localStorage.removeItem('orca_receipts');
-        } catch (e) {}
-        this.showToast('Sessão encerrada com sucesso.');
+        try { localStorage.removeItem('orca_profile'); localStorage.removeItem('orca_clients'); localStorage.removeItem('orca_quotes'); localStorage.removeItem('orca_receipts'); } catch (e) {}
+        this.showToast('Sessão encerrada.');
         this.init();
       }
 
-      showToast(message, type = 'success') {
-        const toast = document.getElementById('toast');
-        const msgEl = document.getElementById('toast-message');
-        const iconEl = document.getElementById('toast-icon');
-        msgEl.textContent = message;
-        iconEl.className = type === 'error' ? 'text-rose-400 text-lg' : 'text-emerald-400 text-lg';
-        iconEl.innerHTML = type === 'error' ? '<i class="fa-solid fa-circle-exclamation"></i>' : '<i class="fa-solid fa-circle-check"></i>';
-        toast.classList.remove('translate-y-[-100px]', 'opacity-0');
-        toast.classList.add('translate-y-0', 'opacity-100');
-        setTimeout(() => {
-          toast.classList.add('translate-y-[-100px]', 'opacity-0');
-          toast.classList.remove('translate-y-0', 'opacity-100');
-        }, 3500);
+      showToast(msg, type = 'success') {
+        const t = document.getElementById('toast'); const m = document.getElementById('toast-message'); const i = document.getElementById('toast-icon');
+        m.textContent = msg;
+        i.className = type === 'error' ? 'text-rose-400 text-lg' : 'text-emerald-400 text-lg';
+        i.innerHTML = type === 'error' ? '<i class="fa-solid fa-circle-exclamation"></i>' : '<i class="fa-solid fa-circle-check"></i>';
+        t.classList.remove('translate-y-[-100px]', 'opacity-0'); t.classList.add('translate-y-0', 'opacity-100');
+        setTimeout(() => { t.classList.add('translate-y-[-100px]', 'opacity-0'); t.classList.remove('translate-y-0', 'opacity-100'); }, 3500);
       }
 
-      handleModalBackdropClick(e) {
-        if (e.target && e.target.id === 'modal-container') {
-          this.closeModal();
-        }
-      }
+      handleModalBackdropClick(e) { if (e.target && e.target.id === 'modal-container') this.closeModal(); }
 
       navigate(tab, params = {}) {
         this.currentTab = tab;
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-          btn.classList.remove('text-emerald-600', 'font-bold');
-          btn.classList.add('text-slate-500');
-        });
-        const activeNav = document.getElementById(`nav-${tab}`);
-        if (activeNav) {
-          activeNav.classList.remove('text-slate-500');
-          activeNav.classList.add('text-emerald-600', 'font-bold');
-        }
-        const container = document.getElementById('main-content');
+        document.querySelectorAll('.nav-btn').forEach(b => { b.classList.remove('text-emerald-600', 'font-bold'); b.classList.add('text-slate-500'); });
+        const n = document.getElementById(`nav-${tab}`);
+        if (n) { n.classList.remove('text-slate-500'); n.classList.add('text-emerald-600', 'font-bold'); }
+        const c = document.getElementById('main-content');
         switch (tab) {
-          case 'dashboard': container.innerHTML = this.renderDashboard(); break;
-          case 'quotes': container.innerHTML = this.renderQuotesList(); break;
-          case 'editor': container.innerHTML = this.renderQuoteEditor(params.quoteId); break;
-          case 'receipts': container.innerHTML = this.renderReceiptsList(); break;
-          case 'clients': container.innerHTML = this.renderClientsList(); break;
-          case 'settings': container.innerHTML = this.renderSettings(); break;
-          default: container.innerHTML = this.renderDashboard();
+          case 'dashboard': c.innerHTML = this.renderDashboard(); break;
+          case 'quotes': c.innerHTML = this.renderQuotesList(); break;
+          case 'editor': c.innerHTML = this.renderQuoteEditor(params.quoteId); break;
+          case 'receipts': c.innerHTML = this.renderReceiptsList(); break;
+          case 'clients': c.innerHTML = this.renderClientsList(); break;
+          case 'settings': c.innerHTML = this.renderSettings(); break;
+          default: c.innerHTML = this.renderDashboard();
         }
       }
 
       renderDashboard() {
-        const approvedValue = this.quotes.filter(q => q.status === 'Aprovado').reduce((s, q) => s + q.total, 0);
-        const totalSent = this.quotes.filter(q => q.status === 'Enviado' || q.status === 'Aprovado').length;
-        const totalApproved = this.quotes.filter(q => q.status === 'Aprovado').length;
-        const recentQuotes = [...this.quotes].slice(0, 5);
-        const quoteCount = this.accessInfo?.quote_count ?? this.quotes.length;
-
-        let usageLabel = 'Bloqueado';
-        let usageValue = '0/1';
-        if (this.isAdmin()) { usageLabel = 'Admin'; usageValue = 'Ilimitado'; }
-        else if (this.isPro()) { usageLabel = 'Pro'; usageValue = 'Ilimitado'; }
-        else if (this.accessInfo?.has_free_trial) { usageLabel = 'Teste'; usageValue = `${quoteCount}/1`; }
-        else if (quoteCount > 0) { usageLabel = 'Expirado'; usageValue = `${quoteCount}/1`; }
+        const av = this.quotes.filter(q => q.status === 'Aprovado').reduce((s, q) => s + q.total, 0);
+        const ts = this.quotes.filter(q => q.status === 'Enviado' || q.status === 'Aprovado').length;
+        const ta = this.quotes.filter(q => q.status === 'Aprovado').length;
+        const rq = [...this.quotes].slice(0, 5);
+        const qc = this.accessInfo?.quote_count ?? this.quotes.length;
+        let ul = 'Bloqueado', uv = '0/1';
+        if (this.isAdmin()) { ul = 'Admin'; uv = 'Ilimitado'; }
+        else if (this.isPro()) { ul = 'Pro'; uv = 'Ilimitado'; }
+        else if (this.accessInfo?.has_free_trial) { ul = 'Teste'; uv = `${qc}/1`; }
+        else if (qc > 0) { ul = 'Expirado'; uv = `${qc}/1`; }
 
         return `
           <div class="space-y-6 animate-fade-in">
@@ -542,17 +364,17 @@
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
               <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
                 <div class="flex items-center justify-between text-slate-500 mb-2"><span class="text-xs font-semibold uppercase tracking-wide">Aprovados</span><div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center"><i class="fa-solid fa-circle-check"></i></div></div>
-                <div><p class="text-xl sm:text-2xl font-black text-slate-900">${this.formatCurrency(approvedValue)}</p><p class="text-[11px] text-slate-400 font-medium mt-0.5">${totalApproved} orçamentos convertidos</p></div>
+                <div><p class="text-xl sm:text-2xl font-black text-slate-900">${this.formatCurrency(av)}</p><p class="text-[11px] text-slate-400 font-medium mt-0.5">${ta} orçamentos convertidos</p></div>
               </div>
               <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
                 <div class="flex items-center justify-between text-slate-500 mb-2"><span class="text-xs font-semibold uppercase tracking-wide">Enviados</span><div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center"><i class="fa-solid fa-paper-plane"></i></div></div>
-                <div><p class="text-xl sm:text-2xl font-black text-slate-900">${totalSent}</p><p class="text-[11px] text-slate-400 font-medium mt-0.5">Entregues no WhatsApp</p></div>
+                <div><p class="text-xl sm:text-2xl font-black text-slate-900">${ts}</p><p class="text-[11px] text-slate-400 font-medium mt-0.5">Entregues no WhatsApp</p></div>
               </div>
               <div class="col-span-2 sm:col-span-1 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
                 <div class="flex items-center justify-between text-slate-500 mb-2"><span class="text-xs font-semibold uppercase tracking-wide">Uso do Plano</span><div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center"><i class="fa-solid fa-chart-simple"></i></div></div>
                 <div>
-                  <div class="flex items-center justify-between"><p class="text-xl sm:text-2xl font-black text-slate-900">${usageValue}</p><span class="text-xs font-bold ${this.isPro() || this.isAdmin() ? 'text-amber-500' : 'text-slate-400'}">${usageLabel}</span></div>
-                  ${!this.isPro() && !this.isAdmin() ? `<div class="w-full bg-slate-100 rounded-full h-2 mt-2 overflow-hidden"><div class="bg-emerald-500 h-2 rounded-full" style="width: ${quoteCount >= 1 ? 100 : 0}%"></div></div>` : ''}
+                  <div class="flex items-center justify-between"><p class="text-xl sm:text-2xl font-black text-slate-900">${uv}</p><span class="text-xs font-bold ${this.isPro() || this.isAdmin() ? 'text-amber-500' : 'text-slate-400'}">${ul}</span></div>
+                  ${!this.isPro() && !this.isAdmin() ? `<div class="w-full bg-slate-100 rounded-full h-2 mt-2 overflow-hidden"><div class="bg-emerald-500 h-2 rounded-full" style="width: ${qc >= 1 ? 100 : 0}%"></div></div>` : ''}
                 </div>
               </div>
             </div>
@@ -562,9 +384,7 @@
                 <button onclick="if(window.app) app.navigate('quotes')" class="text-xs font-semibold text-emerald-600 hover:text-emerald-700">Ver Todos &rarr;</button>
               </div>
               <div class="divide-y divide-slate-100">
-                ${recentQuotes.length === 0
-                  ? `<div class="p-8 text-center text-slate-400"><p class="text-sm font-medium">Nenhum orçamento criado ainda.</p><button onclick="if(window.app) app.startNewQuote()" class="mt-3 text-xs font-bold text-emerald-600 underline">Criar meu primeiro orçamento</button></div>`
-                  : recentQuotes.map(q => this.renderQuoteCardRow(q)).join('')}
+                ${rq.length === 0 ? `<div class="p-8 text-center text-slate-400"><p class="text-sm font-medium">Nenhum orçamento criado ainda.</p><button onclick="if(window.app) app.startNewQuote()" class="mt-3 text-xs font-bold text-emerald-600 underline">Criar meu primeiro orçamento</button></div>` : rq.map(q => this.renderQuoteCardRow(q)).join('')}
               </div>
             </div>
           </div>
@@ -572,7 +392,7 @@
       }
 
       renderQuoteCardRow(q) {
-        const safeId = this.escapeHTML(q.id);
+        const sid = this.escapeHTML(q.id);
         return `
           <div class="p-4 hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="flex items-start space-x-3">
@@ -588,9 +408,9 @@
                 <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">${this.escapeHTML(q.status)}</span>
               </div>
               <div class="flex items-center space-x-1">
-                <button onclick="if(window.app) app.navigate('editor', {quoteId: '${safeId}'})" class="p-2 text-slate-500 hover:text-emerald-600 rounded-lg"><i class="fa-solid fa-pen-to-square"></i></button>
-                <button onclick="if(window.app) app.previewPDF('${safeId}')" class="p-2 text-slate-500 hover:text-rose-600 rounded-lg"><i class="fa-solid fa-file-pdf"></i></button>
-                <button onclick="if(window.app) app.deleteQuote('${safeId}')" class="p-2 text-slate-500 hover:text-rose-600 rounded-lg"><i class="fa-solid fa-trash"></i></button>
+                <button onclick="if(window.app) app.navigate('editor', {quoteId: '${sid}'})" class="p-2 text-slate-500 hover:text-emerald-600 rounded-lg"><i class="fa-solid fa-pen-to-square"></i></button>
+                <button onclick="if(window.app) app.previewPDF('${sid}')" class="p-2 text-slate-500 hover:text-rose-600 rounded-lg"><i class="fa-solid fa-file-pdf"></i></button>
+                <button onclick="if(window.app) app.deleteQuote('${sid}')" class="p-2 text-slate-500 hover:text-rose-600 rounded-lg"><i class="fa-solid fa-trash"></i></button>
               </div>
             </div>
           </div>
@@ -609,67 +429,48 @@
       }
 
       async startNewQuote() {
-        if (!this.user) {
-          this.showToast('Entre com sua conta para criar orçamentos.', 'error');
-          this.openAuthModal();
-          return;
-        }
-
-        // Recarrega status do servidor
         await this.loadAccessStatus();
-
         if (!this.hasFullAccess()) {
           this.showToast('Assine o plano Pro para criar mais orçamentos.', 'error');
           this.openPaywall();
           return;
         }
-
-        // NÃO consome o teste ainda — só cria o rascunho no editor.
-        // O consumo acontece em saveActiveQuote() na primeira gravação.
+        if (!this.user && !this.accessInfo?.has_free_trial) {
+          this.openPaywall();
+          return;
+        }
+        // Se não está logado mas tem teste disponível → cria localmente e salva depois exige login
+        if (!this.user) {
+          this._createNewQuote();
+          return;
+        }
         this._createNewQuote();
       }
 
       _createNewQuote() {
-        const nextNum = this.quotes.length > 0 ? Math.max(...this.quotes.map(q => q.number || 1000)) + 1 : 1001;
+        const n = this.quotes.length > 0 ? Math.max(...this.quotes.map(q => q.number || 1000)) + 1 : 1001;
         this.activeQuote = {
-          id: this.generateId(), number: nextNum,
-          clientName: this.clients[0]?.name || '',
-          date: new Date().toISOString().split('T')[0],
-          validityDays: 7, status: 'Rascunho',
+          id: this.generateId(), number: n, clientName: this.clients[0]?.name || '',
+          date: new Date().toISOString().split('T')[0], validityDays: 7, status: 'Rascunho',
           items: [{ description: '', quantity: 1, unit: 'serviço', unitPrice: 0, subtotal: 0 }],
-          discountType: 'valor', discountValue: 0, extraFee: 0,
-          subtotal: 0, total: 0,
-          paymentMethod: 'Pix ou Cartão', timeframe: 'Imediato',
-          notes: this.profile.footerTerms
+          discountType: 'valor', discountValue: 0, extraFee: 0, subtotal: 0, total: 0,
+          paymentMethod: 'Pix ou Cartão', timeframe: 'Imediato', notes: this.profile.footerTerms
         };
         this.navigate('editor');
       }
 
       renderQuoteEditor(quoteId) {
-        // Bloqueio se não tem acesso
-        if (!this.hasFullAccess() && !this.user) {
-          setTimeout(() => this.openAuthModal(), 0);
-          return '<div class="p-8 text-center text-slate-400">Faça login para continuar.</div>';
-        }
-
         if (quoteId) {
           const ex = this.quotes.find(q => q.id === quoteId);
           if (ex) {
-            // Bloqueia edição de orçamento existente sem acesso
-            if (!this.hasFullAccess()) {
-              setTimeout(() => this.openPaywall(), 0);
-              return '<div class="p-8 text-center text-slate-400">Acesso restrito. Assine o plano Pro.</div>';
-            }
+            if (!this.hasFullAccess()) { setTimeout(() => this.openPaywall(), 0); return '<div class="p-8 text-center text-slate-400">Acesso restrito.</div>'; }
             this.activeQuote = JSON.parse(JSON.stringify(ex));
           }
         }
         if (!this.activeQuote) { this.startNewQuote(); return ''; }
         const q = this.activeQuote;
-        if (!Array.isArray(q.items) || q.items.length === 0) {
-          q.items = [{ description: '', quantity: 1, unit: 'serviço', unitPrice: 0, subtotal: 0 }];
-        }
-        const statusOptions = QUOTE_STATUSES.map(s => `<option value="${s}" ${q.status === s ? 'selected' : ''}>${s}</option>`).join('');
-
+        if (!Array.isArray(q.items) || q.items.length === 0) q.items = [{ description: '', quantity: 1, unit: 'serviço', unitPrice: 0, subtotal: 0 }];
+        const so = QUOTE_STATUSES.map(s => `<option value="${s}" ${q.status === s ? 'selected' : ''}>${s}</option>`).join('');
         return `
           <div class="space-y-5 animate-fade-in pb-20">
             <div class="flex items-center justify-between border-b border-slate-200 pb-3">
@@ -687,7 +488,7 @@
               </div>
               <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
                 <label class="text-xs font-bold uppercase text-slate-500">Status</label>
-                <select id="editor-status" onchange="if(window.app) app.activeQuote.status = this.value" class="w-full p-2 text-sm border rounded-lg">${statusOptions}</select>
+                <select id="editor-status" onchange="if(window.app) app.activeQuote.status = this.value" class="w-full p-2 text-sm border rounded-lg">${so}</select>
               </div>
               <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
                 <label class="text-xs font-bold uppercase text-slate-500">Data de Emissão</label>
@@ -734,143 +535,71 @@
         `;
       }
 
-      updateActiveQuoteClient(name) { if (this.activeQuote) this.activeQuote.clientName = name; }
-
-      addQuoteItem() {
-        if (!this.activeQuote) return;
-        this.activeQuote.items.push({ description: '', quantity: 1, unit: 'un', unitPrice: 0, subtotal: 0 });
-        this.recalculateQuoteTotals();
-        this.navigate('editor');
-      }
-
-      removeQuoteItem(idx) {
-        if (!this.activeQuote) return;
-        this.activeQuote.items.splice(idx, 1);
-        this.recalculateQuoteTotals();
-        this.navigate('editor');
-      }
-
-      updateItem(idx, field, val) {
-        if (!this.activeQuote) return;
-        const item = this.activeQuote.items[idx];
-        if (!item) return;
-        if (field === 'quantity' || field === 'unitPrice') {
-          item[field] = val === '' ? 0 : (parseFloat(val) || 0);
-          item.subtotal = (item.quantity || 0) * (item.unitPrice || 0);
-        } else {
-          item[field] = val;
-        }
-        this.recalculateQuoteTotals();
-      }
-
-      updateDiscount(val) {
-        if (!this.activeQuote) return;
-        this.activeQuote.discountValue = val === '' ? 0 : Math.max(0, parseFloat(val) || 0);
-        this.recalculateQuoteTotals();
-      }
-
-      recalculateQuoteTotals() {
-        if (!this.activeQuote) return;
-        const sub = (this.activeQuote.items || []).reduce((acc, it) => acc + (Number(it.subtotal) || 0), 0);
-        const disc = Number(this.activeQuote.discountValue) || 0;
-        this.activeQuote.subtotal = sub;
-        this.activeQuote.total = Math.max(0, sub - disc);
-        this.updateEditorTotals();
-      }
-
-      updateEditorTotals() {
-        if (!this.activeQuote) return;
-        const subEl = document.getElementById('editor-subtotal-val');
-        const totEl = document.getElementById('editor-total-val');
-        if (subEl) subEl.textContent = this.formatCurrency(this.activeQuote.subtotal);
-        if (totEl) totEl.textContent = this.formatCurrency(this.activeQuote.total);
-      }
+      updateActiveQuoteClient(n) { if (this.activeQuote) this.activeQuote.clientName = n; }
+      addQuoteItem() { if (!this.activeQuote) return; this.activeQuote.items.push({ description: '', quantity: 1, unit: 'un', unitPrice: 0, subtotal: 0 }); this.recalculateQuoteTotals(); this.navigate('editor'); }
+      removeQuoteItem(i) { if (!this.activeQuote) return; this.activeQuote.items.splice(i, 1); this.recalculateQuoteTotals(); this.navigate('editor'); }
+      updateItem(i, f, v) { if (!this.activeQuote) return; const it = this.activeQuote.items[i]; if (!it) return; if (f === 'quantity' || f === 'unitPrice') { it[f] = v === '' ? 0 : (parseFloat(v) || 0); it.subtotal = (it.quantity || 0) * (it.unitPrice || 0); } else it[f] = v; this.recalculateQuoteTotals(); }
+      updateDiscount(v) { if (!this.activeQuote) return; this.activeQuote.discountValue = v === '' ? 0 : Math.max(0, parseFloat(v) || 0); this.recalculateQuoteTotals(); }
+      recalculateQuoteTotals() { if (!this.activeQuote) return; const s = (this.activeQuote.items || []).reduce((a, it) => a + (Number(it.subtotal) || 0), 0); const d = Number(this.activeQuote.discountValue) || 0; this.activeQuote.subtotal = s; this.activeQuote.total = Math.max(0, s - d); this.updateEditorTotals(); }
+      updateEditorTotals() { if (!this.activeQuote) return; const s = document.getElementById('editor-subtotal-val'); const t = document.getElementById('editor-total-val'); if (s) s.textContent = this.formatCurrency(this.activeQuote.subtotal); if (t) t.textContent = this.formatCurrency(this.activeQuote.total); }
 
       async saveActiveQuote(notify = false, redirectToList = false) {
         if (!this.activeQuote) return false;
-        if (!this.user) {
-          this.showToast('Entre com sua conta para salvar.', 'error');
-          this.openAuthModal();
-          return false;
-        }
-
+        if (!this.user) { this.showToast('Entre com sua conta para salvar.', 'error'); this.openAuthModal(); return false; }
         this.recalculateQuoteTotals();
-
-        const hasValidItem = this.activeQuote.items.some(i =>
-          (i.description || '').trim() !== '' && Number(i.subtotal) > 0
-        );
-        if (!hasValidItem) {
-          this.showToast('Adicione pelo menos um item válido com descrição e valor.', 'error');
-          return false;
-        }
+        const hasValidItem = this.activeQuote.items.some(i => (i.description || '').trim() !== '' && Number(i.subtotal) > 0);
+        if (!hasValidItem) { this.showToast('Adicione pelo menos um item válido.', 'error'); return false; }
 
         const exists = this.quotes.some(q => q.id === this.activeQuote.id);
 
-        // Se não tem acesso e é orçamento NOVO → consumir o teste AGORA
+        // Se NÃO tem acesso e é orçamento novo → consumir teste AGORA
         if (!this.hasFullAccess() && !exists) {
           try {
-            const { data, error } = await supabaseClient.rpc('consume_free_trial');
-            if (error) {
-              console.error('Erro consume_free_trial:', error);
-              this.showToast('Erro ao liberar orçamento. Tente novamente.', 'error');
-              return false;
-            }
-            if (!data || !data.success) {
+            const { data, error } = await supabaseClient.rpc('consume_free_trial', { visitor_id: this.visitorId });
+            if (error || !data?.success) {
               this.showToast(data?.error || 'Você já utilizou seu orçamento gratuito.', 'error');
               this.openPaywall();
               return false;
             }
-            // Teste consumido — atualiza o estado local
             this.accessInfo.has_free_trial = false;
             this.accessInfo.can_create_quote = false;
             this.accessInfo.quote_count = (this.accessInfo.quote_count || 0) + 1;
             this.updateHeaderBadge();
           } catch (e) {
-            console.error('Erro ao consumir teste:', e);
-            this.showToast('Erro de conexão. Tente novamente.', 'error');
+            this.showToast('Erro de conexão.', 'error');
             return false;
           }
         } else if (!this.hasFullAccess() && exists) {
-          // Editando orçamento existente sem acesso → bloqueia
-          this.showToast('Assine o plano Pro para continuar.', 'error');
+          this.showToast('Assine o plano Pro.', 'error');
           this.openPaywall();
           return false;
         }
 
-        // Atualiza lista local
-        const index = this.quotes.findIndex(q => q.id === this.activeQuote.id);
-        if (index >= 0) this.quotes[index] = { ...this.activeQuote };
+        const i = this.quotes.findIndex(q => q.id === this.activeQuote.id);
+        if (i >= 0) this.quotes[i] = { ...this.activeQuote };
         else this.quotes.unshift({ ...this.activeQuote });
 
-        const payload = {
-          id: this.activeQuote.id, user_id: this.user.id,
-          number: this.activeQuote.number, client_name: this.activeQuote.clientName,
-          date: this.activeQuote.date, validity_days: this.activeQuote.validityDays,
-          status: this.activeQuote.status, items: this.activeQuote.items,
-          discount_type: this.activeQuote.discountType,
-          discount_value: this.activeQuote.discountValue,
-          extra_fee: this.activeQuote.extraFee,
+        const p = {
+          id: this.activeQuote.id, user_id: this.user.id, number: this.activeQuote.number,
+          client_name: this.activeQuote.clientName, date: this.activeQuote.date,
+          validity_days: this.activeQuote.validityDays, status: this.activeQuote.status,
+          items: this.activeQuote.items, discount_type: this.activeQuote.discountType,
+          discount_value: this.activeQuote.discountValue, extra_fee: this.activeQuote.extraFee,
           subtotal: this.activeQuote.subtotal, total: this.activeQuote.total,
-          payment_method: this.activeQuote.paymentMethod,
-          timeframe: this.activeQuote.timeframe, notes: this.activeQuote.notes
+          payment_method: this.activeQuote.paymentMethod, timeframe: this.activeQuote.timeframe,
+          notes: this.activeQuote.notes
         };
-
-        const { error } = await supabaseClient.from('quotes').upsert(payload, { onConflict: 'id' });
-        if (error) {
-          console.error('Erro ao salvar orçamento no Supabase:', error);
-          this.showToast('Falha ao sincronizar. Tente novamente.', 'error');
-          return false;
-        }
-
+        const { error } = await supabaseClient.from('quotes').upsert(p, { onConflict: 'id' });
+        if (error) { this.showToast('Falha ao sincronizar.', 'error'); return false; }
         await this.saveState();
-        if (notify) this.showToast('Orçamento salvo com sucesso!');
+        if (notify) this.showToast('Orçamento salvo!');
         if (redirectToList) this.navigate('quotes');
         return true;
       }
 
       async deleteQuote(id) {
         if (!this.requireFullAccess('excluir orçamentos')) return;
-        if (!confirm('Deseja realmente excluir este orçamento?')) return;
+        if (!confirm('Excluir este orçamento?')) return;
         this.quotes = this.quotes.filter(q => q.id !== id);
         const { error } = await supabaseClient.from('quotes').delete().eq('id', id);
         if (error) { this.showToast('Erro ao excluir.', 'error'); return; }
@@ -879,11 +608,7 @@
         this.navigate('quotes');
       }
 
-      async previewPDFFromEditor() {
-        const ok = await this.saveActiveQuote(false, false);
-        if (!ok) return;
-        this.previewPDF(this.activeQuote.id);
-      }
+      async previewPDFFromEditor() { const ok = await this.saveActiveQuote(false, false); if (!ok) return; this.previewPDF(this.activeQuote.id); }
 
       previewPDF(id) {
         if (!this.requireFullAccess('gerar PDFs')) return;
@@ -906,28 +631,11 @@
                   <p class="text-xs text-slate-500">Status: ${this.escapeHTML(q.status)}</p>
                 </div>
               </div>
-              <div>
-                <p class="text-xs uppercase font-bold text-slate-400">Cliente</p>
-                <p class="text-base font-bold text-slate-900">${this.escapeHTML(q.clientName || '—')}</p>
-              </div>
+              <div><p class="text-xs uppercase font-bold text-slate-400">Cliente</p><p class="text-base font-bold text-slate-900">${this.escapeHTML(q.clientName || '—')}</p></div>
               <table class="w-full text-left border-collapse">
-                <thead>
-                  <tr class="border-b bg-slate-50 text-xs text-slate-500 uppercase">
-                    <th class="py-2 px-3">Descrição</th>
-                    <th class="py-2 px-3 text-center">Qtd</th>
-                    <th class="py-2 px-3 text-right">Unitário</th>
-                    <th class="py-2 px-3 text-right">Total</th>
-                  </tr>
-                </thead>
+                <thead><tr class="border-b bg-slate-50 text-xs text-slate-500 uppercase"><th class="py-2 px-3">Descrição</th><th class="py-2 px-3 text-center">Qtd</th><th class="py-2 px-3 text-right">Unitário</th><th class="py-2 px-3 text-right">Total</th></tr></thead>
                 <tbody class="divide-y divide-slate-100 text-xs">
-                  ${(q.items || []).map(item => `
-                    <tr>
-                      <td class="py-2.5 px-3 font-medium text-slate-800">${this.escapeHTML(item.description)}</td>
-                      <td class="py-2.5 px-3 text-center">${item.quantity}${this.escapeHTML(item.unit || '')}</td>
-                      <td class="py-2.5 px-3 text-right">${this.formatCurrency(item.unitPrice)}</td>
-                      <td class="py-2.5 px-3 text-right font-bold">${this.formatCurrency(item.subtotal)}</td>
-                    </tr>
-                  `).join('')}
+                  ${(q.items || []).map(item => `<tr><td class="py-2.5 px-3 font-medium text-slate-800">${this.escapeHTML(item.description)}</td><td class="py-2.5 px-3 text-center">${item.quantity}${this.escapeHTML(item.unit || '')}</td><td class="py-2.5 px-3 text-right">${this.formatCurrency(item.unitPrice)}</td><td class="py-2.5 px-3 text-right font-bold">${this.formatCurrency(item.subtotal)}</td></tr>`).join('')}
                 </tbody>
               </table>
               <div class="flex justify-end pt-4 border-t">
@@ -937,9 +645,7 @@
                   <div class="flex justify-between text-sm font-black border-t pt-2 text-slate-900"><span>Total Final:</span><span>${this.formatCurrency(q.total)}</span></div>
                 </div>
               </div>
-              <div class="pt-6 border-t text-[11px] text-slate-500 space-y-1">
-                <p><strong>Condições:</strong> ${this.escapeHTML(q.notes || this.profile.footerTerms)}</p>
-              </div>
+              <div class="pt-6 border-t text-[11px] text-slate-500 space-y-1"><p><strong>Condições:</strong> ${this.escapeHTML(q.notes || this.profile.footerTerms)}</p></div>
             </div>
             <div class="flex justify-end space-x-2 no-print"><button onclick="window.print()" class="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold"><i class="fa-solid fa-print mr-1"></i> Imprimir / PDF</button></div>
           </div>
@@ -952,20 +658,7 @@
           <div class="space-y-4 animate-fade-in">
             <div class="flex justify-between items-center"><h2 class="text-xl font-bold text-slate-900">Recibos Emitidos</h2><button onclick="if(window.app) app.startNewReceipt()" class="px-4 py-2 bg-emerald-600 text-white font-bold rounded-xl text-xs flex items-center space-x-1"><i class="fa-solid fa-plus"></i><span>Novo Recibo</span></button></div>
             <div class="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
-              ${this.receipts.length === 0 ? `<div class="p-8 text-center text-slate-400 text-sm">Nenhum recibo emitido.</div>` : this.receipts.map(r => {
-                const safeId = this.escapeHTML(r.id);
-                return `
-                <div class="p-4 hover:bg-slate-50 transition-colors flex justify-between items-center">
-                  <div>
-                    <h4 class="font-bold text-slate-900 text-sm">Recibo #${r.number} - ${this.escapeHTML(r.payerName)}</h4>
-                    <p class="text-xs text-slate-500">${this.formatDate(r.date)} • ${this.formatCurrency(r.amount)}</p>
-                  </div>
-                  <div class="flex space-x-1">
-                    <button onclick="if(window.app) app.previewReceiptPDF('${safeId}')" class="p-2 text-slate-500 hover:text-rose-600 rounded-lg"><i class="fa-solid fa-file-pdf"></i></button>
-                    <button onclick="if(window.app) app.deleteReceipt('${safeId}')" class="p-2 text-slate-500 hover:text-rose-600 rounded-lg"><i class="fa-solid fa-trash"></i></button>
-                  </div>
-                </div>
-              `;}).join('')}
+              ${this.receipts.length === 0 ? `<div class="p-8 text-center text-slate-400 text-sm">Nenhum recibo emitido.</div>` : this.receipts.map(r => { const sid = this.escapeHTML(r.id); return `<div class="p-4 hover:bg-slate-50 transition-colors flex justify-between items-center"><div><h4 class="font-bold text-slate-900 text-sm">Recibo #${r.number} - ${this.escapeHTML(r.payerName)}</h4><p class="text-xs text-slate-500">${this.formatDate(r.date)} • ${this.formatCurrency(r.amount)}</p></div><div class="flex space-x-1"><button onclick="if(window.app) app.previewReceiptPDF('${sid}')" class="p-2 text-slate-500 hover:text-rose-600 rounded-lg"><i class="fa-solid fa-file-pdf"></i></button><button onclick="if(window.app) app.deleteReceipt('${sid}')" class="p-2 text-slate-500 hover:text-rose-600 rounded-lg"><i class="fa-solid fa-trash"></i></button></div></div>`; }).join('')}
             </div>
           </div>
         `;
@@ -994,36 +687,20 @@
       async saveReceipt(e) {
         e.preventDefault();
         if (!this.requireFullAccess('emitir recibos')) return;
-        const nextNum = this.receipts.length > 0 ? Math.max(...this.receipts.map(r => r.number || 100)) + 1 : 101;
-        const newR = {
-          id: this.generateId(), number: nextNum,
-          payerName: document.getElementById('rcpt-payer').value.trim(),
-          receiverName: this.profile.tradeName || this.profile.name || '',
-          date: document.getElementById('rcpt-date').value,
-          amount: parseFloat(document.getElementById('rcpt-amount').value) || 0,
-          description: document.getElementById('rcpt-desc').value.trim(),
-          paymentMethod: 'Pix', notes: ''
-        };
-        this.receipts.unshift(newR);
-        const { error } = await supabaseClient.from('receipts').insert([{
-          id: newR.id, user_id: this.user.id, number: newR.number,
-          payer_name: newR.payerName, receiver_name: newR.receiverName,
-          date: newR.date, amount: newR.amount, description: newR.description,
-          payment_method: newR.paymentMethod, notes: newR.notes
-        }]);
-        if (error) {
-          this.showToast('Falha ao salvar recibo.', 'error');
-          return;
-        }
+        const n = this.receipts.length > 0 ? Math.max(...this.receipts.map(r => r.number || 100)) + 1 : 101;
+        const nr = { id: this.generateId(), number: n, payerName: document.getElementById('rcpt-payer').value.trim(), receiverName: this.profile.tradeName || this.profile.name || '', date: document.getElementById('rcpt-date').value, amount: parseFloat(document.getElementById('rcpt-amount').value) || 0, description: document.getElementById('rcpt-desc').value.trim(), paymentMethod: 'Pix', notes: '' };
+        this.receipts.unshift(nr);
+        const { error } = await supabaseClient.from('receipts').insert([{ id: nr.id, user_id: this.user.id, number: nr.number, payer_name: nr.payerName, receiver_name: nr.receiverName, date: nr.date, amount: nr.amount, description: nr.description, payment_method: nr.paymentMethod, notes: nr.notes }]);
+        if (error) { this.showToast('Falha ao salvar recibo.', 'error'); return; }
         await this.saveState();
         this.closeModal();
-        this.showToast('Recibo emitido com sucesso!');
+        this.showToast('Recibo emitido!');
         this.navigate('receipts');
       }
 
       async deleteReceipt(id) {
         if (!this.requireFullAccess('excluir recibos')) return;
-        if (!confirm('Deseja excluir este recibo?')) return;
+        if (!confirm('Excluir este recibo?')) return;
         this.receipts = this.receipts.filter(r => r.id !== id);
         const { error } = await supabaseClient.from('receipts').delete().eq('id', id);
         if (error) { this.showToast('Erro ao excluir.', 'error'); return; }
@@ -1041,19 +718,9 @@
           <div class="p-6 space-y-4">
             <div class="flex justify-between border-b pb-3 no-print"><h3 class="font-bold">Pré-visualização do Recibo</h3><button onclick="if(window.app) app.closeModal()" class="text-slate-400"><i class="fa-solid fa-xmark text-lg"></i></button></div>
             <div id="printable-document" class="a4-page p-10 border rounded-xl bg-white space-y-6 text-slate-800 text-sm">
-              <div class="text-center border-b pb-4">
-                <h2 class="text-2xl font-black text-slate-900">RECIBO DE PAGAMENTO #${r.number}</h2>
-                <p class="text-xl font-bold text-emerald-600 mt-2">Valor: ${this.formatCurrency(r.amount)}</p>
-              </div>
-              <div class="space-y-3">
-                <p>Recebi(emos) de <strong>${this.escapeHTML(r.payerName)}</strong> a quantia supra de <strong>${this.formatCurrency(r.amount)}</strong>.</p>
-                <p>Referente a: <strong>${this.escapeHTML(r.description)}</strong>.</p>
-                <p class="text-xs text-slate-500 pt-4">Emitido em: ${this.formatDate(r.date)}</p>
-              </div>
-              <div class="pt-12 text-center">
-                <p class="border-t border-slate-400 w-64 mx-auto pt-2 font-bold">${this.escapeHTML(r.receiverName || this.profile.name)}</p>
-                <p class="text-xs text-slate-500">Emitente / Prestador</p>
-              </div>
+              <div class="text-center border-b pb-4"><h2 class="text-2xl font-black text-slate-900">RECIBO DE PAGAMENTO #${r.number}</h2><p class="text-xl font-bold text-emerald-600 mt-2">Valor: ${this.formatCurrency(r.amount)}</p></div>
+              <div class="space-y-3"><p>Recebi(emos) de <strong>${this.escapeHTML(r.payerName)}</strong> a quantia supra de <strong>${this.formatCurrency(r.amount)}</strong>.</p><p>Referente a: <strong>${this.escapeHTML(r.description)}</strong>.</p><p class="text-xs text-slate-500 pt-4">Emitido em: ${this.formatDate(r.date)}</p></div>
+              <div class="pt-12 text-center"><p class="border-t border-slate-400 w-64 mx-auto pt-2 font-bold">${this.escapeHTML(r.receiverName || this.profile.name)}</p><p class="text-xs text-slate-500">Emitente / Prestador</p></div>
             </div>
             <div class="flex justify-end space-x-2 no-print"><button onclick="window.print()" class="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold"><i class="fa-solid fa-print mr-1"></i> Imprimir / PDF</button></div>
           </div>
@@ -1068,13 +735,8 @@
             <div class="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
               ${this.clients.length === 0 ? `<div class="p-8 text-center text-slate-400 text-sm">Nenhum cliente cadastrado.</div>` : this.clients.map(c => `
                 <div class="p-4 hover:bg-slate-50 transition-colors flex justify-between items-center">
-                  <div>
-                    <h4 class="font-bold text-slate-900 text-sm">${this.escapeHTML(c.name)}</h4>
-                    <p class="text-xs text-slate-500">Tel: ${this.escapeHTML(c.phone || 'N/I')} • E-mail: ${this.escapeHTML(c.email || 'N/I')}</p>
-                  </div>
-                  <div class="flex space-x-1">
-                    <button onclick="if(window.app) app.deleteClient('${this.escapeHTML(c.id)}')" class="p-2 text-slate-500 hover:text-rose-600 rounded-lg"><i class="fa-solid fa-trash"></i></button>
-                  </div>
+                  <div><h4 class="font-bold text-slate-900 text-sm">${this.escapeHTML(c.name)}</h4><p class="text-xs text-slate-500">Tel: ${this.escapeHTML(c.phone || 'N/I')} • E-mail: ${this.escapeHTML(c.email || 'N/I')}</p></div>
+                  <div class="flex space-x-1"><button onclick="if(window.app) app.deleteClient('${this.escapeHTML(c.id)}')" class="p-2 text-slate-500 hover:text-rose-600 rounded-lg"><i class="fa-solid fa-trash"></i></button></div>
                 </div>
               `).join('')}
             </div>
@@ -1105,31 +767,19 @@
       async saveClient(e) {
         e.preventDefault();
         if (!this.requireFullAccess('cadastrar clientes')) return;
-        const newC = {
-          id: this.generateId(),
-          name: document.getElementById('cli-name').value.trim(),
-          phone: document.getElementById('cli-phone').value.trim(),
-          email: document.getElementById('cli-email').value.trim(),
-          address: document.getElementById('cli-address').value.trim()
-        };
-        this.clients.push(newC);
-        const { error } = await supabaseClient.from('clients').insert([{
-          id: newC.id, user_id: this.user.id, name: newC.name,
-          phone: newC.phone, email: newC.email, address: newC.address
-        }]);
-        if (error) {
-          this.showToast('Falha ao salvar cliente.', 'error');
-          return;
-        }
+        const nc = { id: this.generateId(), name: document.getElementById('cli-name').value.trim(), phone: document.getElementById('cli-phone').value.trim(), email: document.getElementById('cli-email').value.trim(), address: document.getElementById('cli-address').value.trim() };
+        this.clients.push(nc);
+        const { error } = await supabaseClient.from('clients').insert([{ id: nc.id, user_id: this.user.id, name: nc.name, phone: nc.phone, email: nc.email, address: nc.address }]);
+        if (error) { this.showToast('Falha ao salvar cliente.', 'error'); return; }
         await this.saveState();
         this.closeModal();
-        this.showToast('Cliente cadastrado com sucesso!');
+        this.showToast('Cliente cadastrado!');
         this.navigate('clients');
       }
 
       async deleteClient(id) {
         if (!this.requireFullAccess('excluir clientes')) return;
-        if (!confirm('Deseja excluir este cliente?')) return;
+        if (!confirm('Excluir este cliente?')) return;
         this.clients = this.clients.filter(c => c.id !== id);
         const { error } = await supabaseClient.from('clients').delete().eq('id', id);
         if (error) { this.showToast('Erro ao excluir.', 'error'); return; }
@@ -1156,25 +806,14 @@
               <div><label class="text-xs font-bold uppercase text-slate-500">Termos e Condições Padrão de Rodapé</label><textarea id="set-terms" rows="2" class="w-full p-2 border rounded-lg text-sm">${this.escapeHTML(p.footerTerms)}</textarea></div>
               <div class="flex justify-end pt-2"><button type="submit" class="px-5 py-2.5 bg-emerald-600 text-white font-bold rounded-xl text-xs">Salvar Configurações</button></div>
             </form>
-            ${this.subscription ? `
-              <div class="bg-white p-5 rounded-xl border border-slate-200 space-y-2">
-                <h3 class="font-bold text-slate-900 text-sm">Sua Assinatura</h3>
-                <p class="text-xs text-slate-600">Plano: <strong>${this.subscription.plan_type === 'yearly' ? 'Anual' : 'Mensal'}</strong></p>
-                <p class="text-xs text-slate-600">Status: <strong>${this.subscription.status === 'active' ? 'Ativo' : this.subscription.status}</strong></p>
-                <p class="text-xs text-slate-600">Válido até: <strong>${this.formatDate(this.subscription.end_date?.split('T')[0])}</strong></p>${this.subscription.isActive && this.subscription.daysRemaining <= 7 ? `<p class="text-xs text-amber-600 font-bold">⚠️ Sua assinatura expira em ${this.subscription.daysRemaining} dia(s). Renove agora!</p>` : ''}
-              </div>
-            ` : ''}
+            ${this.subscription ? `<div class="bg-white p-5 rounded-xl border border-slate-200 space-y-2"><h3 class="font-bold text-slate-900 text-sm">Sua Assinatura</h3><p class="text-xs text-slate-600">Plano: <strong>${this.subscription.plan_type === 'yearly' ? 'Anual' : 'Mensal'}</strong></p><p class="text-xs text-slate-600">Status: <strong>${this.subscription.status === 'active' ? 'Ativo' : this.subscription.status}</strong></p><p class="text-xs text-slate-600">Válido até: <strong>${this.formatDate(this.subscription.end_date?.split('T')[0])}</strong></p>${this.subscription.isActive && this.subscription.daysRemaining <= 7 ? `<p class="text-xs text-amber-600 font-bold">⚠️ Expira em ${this.subscription.daysRemaining} dia(s).</p>` : ''}</div>` : ''}
           </div>
         `;
       }
 
       async saveSettings(e) {
         e.preventDefault();
-        if (!this.user) {
-          this.showToast('Entre com sua conta para salvar.', 'error');
-          this.openAuthModal();
-          return;
-        }
+        if (!this.user) { this.showToast('Entre com sua conta para salvar.', 'error'); this.openAuthModal(); return; }
         this.profile.name = document.getElementById('set-name').value.trim();
         this.profile.tradeName = document.getElementById('set-tradename').value.trim();
         this.profile.document = document.getElementById('set-doc').value.trim();
@@ -1184,7 +823,7 @@
         this.profile.pixKey = document.getElementById('set-pix').value.trim();
         this.profile.footerTerms = document.getElementById('set-terms').value;
         await this.saveState();
-        this.showToast('Configurações salvas com sucesso!');
+        this.showToast('Configurações salvas!');
       }
 
       openAuthModal() {
@@ -1214,7 +853,7 @@
         if (error) { this.showToast('Erro ao entrar: ' + error.message, 'error'); return; }
         this.user = data.user;
         this.closeModal();
-        this.showToast('Login realizado com sucesso!');
+        this.showToast('Login realizado!');
         await this.init();
       }
 
@@ -1222,7 +861,32 @@
         const email = document.getElementById('auth-email').value.trim();
         const pass = document.getElementById('auth-pass').value;
         if (!email || !pass) { this.showToast('Preencha e-mail e senha.', 'error'); return; }
-        if (pass.length < 6) { this.showToast('A senha deve ter pelo menos 6 caracteres.', 'error'); return; }
+        if (pass.length < 6) { this.showToast('Senha deve ter 6+ caracteres.', 'error'); return; }
+
+        // Tenta cadastro via Edge Function (bloqueia quem não tem autorização)
+        try {
+          const { data, error } = await supabaseClient.functions.invoke('create-account', { body: { email, password: pass } });
+          if (!error && data && data.success) {
+            this.showToast('Conta criada! Faça login.');
+            this.closeModal();
+            return;
+          }
+          if (data && data.error) {
+            this.showToast(data.error, 'error');
+            return;
+          }
+          // Se a Edge Function não existir (404), faz fallback para signUp direto
+          if (error && (error.message || '').toLowerCase().includes('not found')) {
+            console.warn('Edge Function create-account não encontrada. Usando signUp direto.');
+          } else if (error) {
+            this.showToast('Erro no cadastro: ' + error.message, 'error');
+            return;
+          }
+        } catch (e) {
+          console.warn('Erro ao chamar Edge Function, usando fallback:', e);
+        }
+
+        // Fallback: signUp direto (só funciona enquanto Edge Function não está publicada)
         const { data, error } = await supabaseClient.auth.signUp({ email, password: pass });
         if (error) { this.showToast('Erro no cadastro: ' + error.message, 'error'); return; }
         if (data.session) {
@@ -1240,38 +904,14 @@
         const userId = this.user ? this.user.id : '';
         const yearlyUrl = 'https://cerefy.com.br/checkout/c9d342ca-5bb0-454e-b861-eb36dbefa9e8?user_id=' + userId;
         const monthlyUrl = 'https://cerefy.com.br/checkout/442c9856-0ce9-474e-bb2f-260c93534c40?user_id=' + userId;
-
         const contentHTML = '<div class="p-6 space-y-5 bg-slate-900 text-white rounded-2xl">' +
-          '<div class="flex justify-between items-start">' +
-            '<div>' +
-              '<span class="text-xs font-extrabold text-amber-400 uppercase tracking-widest bg-amber-400/10 px-2.5 py-1 rounded-full border border-amber-400/20">Seja Pro</span>' +
-              '<h3 class="text-2xl font-black mt-2">Desbloqueie Recursos Pro</h3>' +
-            '</div>' +
-            '<button onclick="if(window.app) app.closeModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>' +
-          '</div>' +
+          '<div class="flex justify-between items-start"><div><span class="text-xs font-extrabold text-amber-400 uppercase tracking-widest bg-amber-400/10 px-2.5 py-1 rounded-full border border-amber-400/20">Seja Pro</span><h3 class="text-2xl font-black mt-2">Desbloqueie Recursos Pro</h3></div><button onclick="if(window.app) app.closeModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button></div>' +
           '<p class="text-xs text-slate-300">Escolha uma das opções abaixo para continuar usando todos os recursos sem limites:</p>' +
           '<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">' +
-            '<div class="p-4 bg-gradient-to-br from-emerald-600 to-teal-700 rounded-xl space-y-3 border border-emerald-500 shadow-md flex flex-col justify-between">' +
-              '<div>' +
-                '<span class="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Mais Popular</span>' +
-                '<p class="text-sm font-bold text-emerald-100 mt-2">Plano Pro Anual</p>' +
-                '<p class="text-xl font-black text-white">R$ 119,00 <span class="text-xs font-normal text-emerald-100">/ano</span></p>' +
-                '<p class="text-[10px] text-emerald-100 mt-1">Pagamento único anual.</p>' +
-              '</div>' +
-              '<a href="' + yearlyUrl + '" target="_blank" rel="noopener" class="w-full py-2.5 bg-white text-slate-900 font-extrabold rounded-xl text-xs shadow text-center block">Assinar Anual</a>' +
-            '</div>' +
-            '<div class="p-4 bg-slate-800 rounded-xl space-y-3 border border-slate-700 shadow-md flex flex-col justify-between">' +
-              '<div>' +
-                '<span class="bg-slate-700 text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Flexível</span>' +
-                '<p class="text-sm font-bold text-slate-200 mt-2">Plano Pro Mensal</p>' +
-                '<p class="text-xl font-black text-white">R$ 14,90 <span class="text-xs font-normal text-slate-400">/mês</span></p>' +
-                '<p class="text-[10px] text-slate-400 mt-1">Cancele quando quiser.</p>' +
-              '</div>' +
-              '<a href="' + monthlyUrl + '" target="_blank" rel="noopener" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold rounded-xl text-xs shadow text-center block">Assinar Mensal</a>' +
-            '</div>' +
+            '<div class="p-4 bg-gradient-to-br from-emerald-600 to-teal-700 rounded-xl space-y-3 border border-emerald-500 shadow-md flex flex-col justify-between"><div><span class="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Mais Popular</span><p class="text-sm font-bold text-emerald-100 mt-2">Plano Pro Anual</p><p class="text-xl font-black text-white">R$ 119,00 <span class="text-xs font-normal text-emerald-100">/ano</span></p><p class="text-[10px] text-emerald-100 mt-1">Pagamento único anual.</p></div><a href="' + yearlyUrl + '" target="_blank" rel="noopener" class="w-full py-2.5 bg-white text-slate-900 font-extrabold rounded-xl text-xs shadow text-center block">Assinar Anual</a></div>' +
+            '<div class="p-4 bg-slate-800 rounded-xl space-y-3 border border-slate-700 shadow-md flex flex-col justify-between"><div><span class="bg-slate-700 text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Flexível</span><p class="text-sm font-bold text-slate-200 mt-2">Plano Pro Mensal</p><p class="text-xl font-black text-white">R$ 14,90 <span class="text-xs font-normal text-slate-400">/mês</span></p><p class="text-[10px] text-slate-400 mt-1">Cancele quando quiser.</p></div><a href="' + monthlyUrl + '" target="_blank" rel="noopener" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold rounded-xl text-xs shadow text-center block">Assinar Mensal</a></div>' +
           '</div>' +
         '</div>';
-
         document.getElementById('modal-content').innerHTML = contentHTML;
         modal.classList.remove('hidden');
       }
