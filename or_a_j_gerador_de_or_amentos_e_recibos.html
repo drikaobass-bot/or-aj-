@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Orça Já - Gerador de Orçamentos e Recibos</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    /* Print Styles for clean A4 PDF generation */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #printable-document, #printable-document * {
+        visibility: visible;
+      }
+      #printable-document {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        box-shadow: none !important;
+        border: none !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+
+    /* A4 simulation aspect ratio */
+    .a4-page {
+      min-height: 297mm;
+      width: 100%;
+      max-width: 210mm;
+      margin: 0 auto;
+      background: white;
+    }
+
+    /* Pulse animation for record indicators */
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    .animate-pulse-subtle {
+      animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen pb-20 md:pb-6">
+
+  <div id="app" class="max-w-4xl mx-auto min-h-screen flex flex-col bg-white shadow-xl md:my-4 md:rounded-2xl overflow-hidden border border-slate-200">
+    
+    <!-- Header / Navigation Bar -->
+    <header class="bg-slate-900 text-white px-4 py-3 sticky top-0 z-30 flex items-center justify-between border-b border-slate-800 shadow-sm">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-green-400 flex items-center justify-center font-bold text-slate-900 shadow-md">
+          <i class="fa-solid fa-bolt text-lg"></i>
+        </div>
+        <div>
+          <h1 class="font-extrabold text-lg tracking-tight text-white leading-none">Orça Já</h1>
+          <p class="text-[11px] text-slate-400 font-medium">Orçamentos & Recibos em 1 min</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <!-- User Badge Status -->
+        <button onclick="app.openPaywall()" id="plan-badge" class="flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition-all">
+          <i class="fa-solid fa-crown text-[10px] text-amber-400"></i>
+          <span id="plan-text">Plano Grátis</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Dynamic Content Container -->
+    <main id="main-content" class="flex-1 p-4 md:p-6 overflow-y-auto">
+      <!-- Content renders dynamically via Javascript -->
+    </main>
+
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 max-w-4xl mx-auto bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 px-2 py-1.5 flex justify-around items-center md:sticky md:border-t-0 md:bg-transparent">
+      <button onclick="app.navigate('dashboard')" id="nav-dashboard" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors">
+        <i class="fa-solid fa-chart-pie text-lg mb-0.5"></i>
+        <span>Início</span>
+      </button>
+
+      <button onclick="app.navigate('quotes')" id="nav-quotes" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors">
+        <i class="fa-solid fa-file-invoice text-lg mb-0.5"></i>
+        <span>Orçamentos</span>
+      </button>
+
+      <!-- Center Action Plus Button -->
+      <button onclick="app.startNewQuote()" class="w-12 h-12 -mt-5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 active:scale-95 transition-all">
+        <i class="fa-solid fa-plus text-xl"></i>
+      </button>
+
+      <button onclick="app.navigate('clients')" id="nav-clients" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors">
+        <i class="fa-solid fa-users text-lg mb-0.5"></i>
+        <span>Clientes</span>
+      </button>
+
+      <button onclick="app.navigate('settings')" id="nav-settings" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors">
+        <i class="fa-solid fa-gear text-lg mb-0.5"></i>
+        <span>Ajustes</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Global Notification Toast -->
+  <div id="toast" class="fixed top-16 right-4 z-50 transform translate-y-[-100px] opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3 border border-slate-700 max-w-sm">
+      <div id="toast-icon" class="text-emerald-400 text-lg">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+      <p id="toast-message" class="text-sm font-medium">Operação realizada!</p>
+    </div>
+  </div>
+
+  <!-- Modal Container for Dynamic Dialogs (Paywall, Quick Add Client, PDF Preview) -->
+  <div id="modal-container" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div id="modal-content" class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transform transition-all">
+      <!-- Modal dynamically populated -->
+    </div>
+  </div>
+
+  <script>
+    // Core Application Logic & State Store
+    const DEFAULT_PROFILE = {
+      name: 'Carlos Oliveira - Serviço Elétrico',
+      tradeName: 'EletroPro Soluções',
+      document: '12.345.678/0001-90',
+      phone: '11987654321',
+      email: 'carlos.eletropro@gmail.com',
+      address: 'Rua das Flores, 120 - São Paulo, SP',
+      logoUrl: '',
+      primaryColor: '#16a34a', // Emerald 600
+      pixKey: '11987654321',
+      footerTerms: 'Orçamento válido por 7 dias. Pagamento em até 3x no cartão sem juros ou 5% de desconto no Pix.',
+      profession: 'Eletricista',
+      plan: 'free', // 'free' | 'pro'
+      quotesCreatedThisMonth: 2,
+      receiptsCreatedThisMonth: 1,
+      nextQuoteNumber: 1003,
+      nextReceiptNumber: 102
+    };
+
+    const INITIAL_CLIENTS = [
+      { id: 'cli_1', name: 'Ana Maria Silva', phone: '11999887766', email: 'ana.silva@email.com', document: '123.456.789-00', address: 'Av. Paulista, 1000 - Apt 42, SP' },
+      { id: 'cli_2', name: 'Condomínio Residencial Bella Vista', phone: '11988776655', email: 'contato@bellavista.com.br', document: '98.765.432/0001-10', address: 'Rua Augusta, 500 - Consolação, SP' }
+    ];
+
+    const INITIAL_CATALOG = [
+      { id: 'cat_1', description: 'Instalação de Chuveiro Elétrico', unit: 'serviço', defaultPrice: 120.00 },
+      { id: 'cat_2', description: 'Troca de Disjuntor no Quadro de Força', unit: 'un', defaultPrice: 85.00 },
+      { id: 'cat_3', description: 'Ponto de Tomada / Interruptor Novo', unit: 'un', defaultPrice: 65.00 },
+      { id: 'cat_4', description: 'Revisão da Rede Elétrica Residencial (m²)', unit: 'm²', defaultPrice: 15.00 }
+    ];
+
+    const INITIAL_QUOTES = [
+      {
+        id: 'q_1001',
+        number: 1001,
+        clientId: 'cli_1',
+        clientName: 'Ana Maria Silva',
+        date: '2026-10-01',
+        validityDays: 7,
+        status: 'Aprovado',
+        items: [
+          { description: 'Instalação de Chuveiro Elétrico', quantity: 1, unit: 'serviço', unitPrice: 120.00, subtotal: 120.00 },
+          { description: 'Troca de Disjuntor no Quadro de Força', quantity: 2, unit: 'un', unitPrice: 85.00, subtotal: 170.00 }
+        ],
+        discountType: 'valor',
+        discountValue: 20.00,
+        extraFee: 0,
+        subtotal: 290.00,
+        total: 270.00,
+        paymentMethod: 'Pix à vista ou Cartão em 2x',
+        timeframe: '1 dia útil',
+        notes: 'Material incluso por conta do prestador.'
+      },
+      {
+        id: 'q_1002',
+        number: 1002,
+        clientId: 'cli_2',
+        clientName: 'Condomínio Residencial Bella Vista',
+        date: '2026-10-05',
+        validityDays: 10,
+        status: 'Enviado',
+        items: [
+          { description: 'Revisão da Rede Elétrica Residencial (m²)', quantity: 150, unit: 'm²', unitPrice: 15.00, subtotal: 2250.00 }
+        ],
+        discountType: 'percentual',
+        discountValue: 10,
+        extraFee: 100.00,
+        subtotal: 2250.00,
+        total: 2125.00,
+        paymentMethod: '50% na aprovação e 50% no término',
+        timeframe: '3 dias úteis',
+        notes: 'Garantia de 90 dias dos serviços prestados.'
+      }
+    ];
+
+    const INITIAL_RECEIPTS = [
+      {
+        id: 'rec_101',
+        number: 101,
+        quoteId: 'q_1001',
+        clientName: 'Ana Maria Silva',
+        clientDocument: '123.456.789-00',
+        date: '2026-10-02',
+        amount: 270.00,
+        paymentMethod: 'Pix',
+        description: 'Serviço de instalação de chuveiro elétrico e substituição de 2 disjuntores residenciais.'
+      }
+    ];
+
+    class OrçaJaApp {
+      constructor() {
+        this.loadState();
+        this.currentTab = 'dashboard';
+        this.activeQuote = null; // Holds temporary quote being edited
+      }
+
+      loadState() {
+        this.profile = JSON.parse(localStorage.getItem('orca_profile')) || DEFAULT_PROFILE;
+        this.clients = JSON.parse(localStorage.getItem('orca_clients')) || INITIAL_CLIENTS;
+        this.catalog = JSON.parse(localStorage.getItem('orca_catalog')) || INITIAL_CATALOG;
+        this.quotes = JSON.parse(localStorage.getItem('orca_quotes')) || INITIAL_QUOTES;
+        this.receipts = JSON.parse(localStorage.getItem('orca_receipts')) || INITIAL_RECEIPTS;
+      }
+
+      saveState() {
+        localStorage.setItem('orca_profile', JSON.stringify(this.profile));
+        localStorage.setItem('orca_clients', JSON.stringify(this.clients));
+        localStorage.setItem('orca_catalog', JSON.stringify(this.catalog));
+        localStorage.setItem('orca_quotes', JSON.stringify(this.quotes));
+        localStorage.setItem('orca_receipts', JSON.stringify(this.receipts));
+        this.updateHeaderBadge();
+      }
+
+      init() {
+        this.updateHeaderBadge();
+        this.navigate('dashboard');
+      }
+
+      updateHeaderBadge() {
+        const isPro = this.profile.plan === 'pro';
+        const badgeText = document.getElementById('plan-text');
+        const badgeBtn = document.getElementById('plan-badge');
+
+        if (isPro) {
+          badgeText.textContent = 'Plano Pro';
+          badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-400/20 text-amber-300 border border-amber-400/40';
+        } else {
+          badgeText.textContent = `Grátis (${this.profile.quotesCreatedThisMonth}/5)`;
+          badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition-all';
+        }
+      }
+
+      showToast(message, type = 'success') {
+        const toast = document.getElementById('toast');
+        const msgEl = document.getElementById('toast-message');
+        const iconEl = document.getElementById('toast-icon');
+
+        msgEl.textContent = message;
+        if (type === 'error') {
+          iconEl.className = 'text-rose-400 text-lg';
+          iconEl.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i>';
+        } else {
+          iconEl.className = 'text-emerald-400 text-lg';
+          iconEl.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+        }
+
+        toast.classList.remove('translate-y-[-100px]', 'opacity-0');
+        toast.classList.add('translate-y-0', 'opacity-100');
+
+        setTimeout(() => {
+          toast.classList.add('translate-y-[-100px]', 'opacity-0');
+          toast.classList.remove('translate-y-0', 'opacity-100');
+        }, 3000);
+      }
+
+      navigate(tab, params = {}) {
+        this.currentTab = tab;
+        
+        // Highlight tab buttons
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+          btn.classList.remove('text-emerald-600', 'font-bold');
+          btn.classList.add('text-slate-500');
+        });
+        const activeNav = document.getElementById(`nav-${tab}`);
+        if (activeNav) {
+          activeNav.classList.remove('text-slate-500');
+          activeNav.classList.add('text-emerald-600', 'font-bold');
+        }
+
+        const container = document.getElementById('main-content');
+        
+        switch (tab) {
+          case 'dashboard':
+            container.innerHTML = this.renderDashboard();
+            break;
+          case 'quotes':
+            container.innerHTML = this.renderQuotesList();
+            break;
+          case 'editor':
+            container.innerHTML = this.renderQuoteEditor(params.quoteId);
+            break;
+          case 'clients':
+            container.innerHTML = this.renderClientsList();
+            break;
+          case 'settings':
+            container.innerHTML = this.renderSettings();
+            break;
+          default:
+            container.innerHTML = this.renderDashboard();
+        }
+      }
+
+      renderDashboard() {
+        const approvedValue = this.quotes
+          .filter(q => q.status === 'Aprovado')
+          .reduce((sum, q) => sum + q.total, 0);
+
+        const totalSent = this.quotes.filter(q => q.status === 'Enviado' || q.status === 'Aprovado').length;
+        const totalApproved = this.quotes.filter(q => q.status === 'Aprovado').length;
+
+        const recentQuotes = [...this.quotes].reverse().slice(0, 5);
+
+        return `
+          <div class="space-y-6 animate-fade-in">
+            <!-- Welcome Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 text-white p-5 rounded-2xl shadow-lg relative overflow-hidden">
+              <div class="absolute -right-6 -bottom-6 text-slate-800 text-9xl font-black pointer-events-none opacity-40">
+                <i class="fa-solid fa-calculator"></i>
+              </div>
+              <div class="relative z-10">
+                <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                  ${this.profile.profession || 'Prestador de Serviço'}
+                </span>
+                <h2 class="text-xl sm:text-2xl font-bold mt-2">${this.profile.name || 'Olá, Prestador!'}</h2>
+                <p class="text-sm text-slate-300 mt-0.5">Gerencie seus orçamentos rápidos em um só lugar.</p>
+              </div>
+
+              <div class="relative z-10 flex gap-2">
+                <button onclick="app.startNewQuote()" class="w-full sm:w-auto px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center space-x-2 active:scale-95">
+                  <i class="fa-solid fa-plus-circle text-base"></i>
+                  <span>Novo Orçamento</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Metrics Overview Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+              <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between text-slate-500 mb-2">
+                  <span class="text-xs font-semibold uppercase tracking-wide">Aprovados</span>
+                  <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <i class="fa-solid fa-circle-check"></i>
+                  </div>
+                </div>
+                <div>
+                  <p class="text-xl sm:text-2xl font-black text-slate-900">${this.formatCurrency(approvedValue)}</p>
+                  <p class="text-[11px] text-slate-400 font-medium mt-0.5">${totalApproved} orçamentos convertidos</p>
+                </div>
+              </div>
+
+              <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between text-slate-500 mb-2">
+                  <span class="text-xs font-semibold uppercase tracking-wide">Enviados</span>
+                  <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <i class="fa-solid fa-paper-plane"></i>
+                  </div>
+                </div>
+                <div>
+                  <p class="text-xl sm:text-2xl font-black text-slate-900">${totalSent}</p>
+                  <p class="text-[11px] text-slate-400 font-medium mt-0.5">Entregues no WhatsApp</p>
+                </div>
+              </div>
+
+              <div class="col-span-2 sm:col-span-1 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between text-slate-500 mb-2">
+                  <span class="text-xs font-semibold uppercase tracking-wide">Uso Mensal</span>
+                  <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+                    <i class="fa-solid fa-chart-simple"></i>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between">
+                    <p class="text-xl sm:text-2xl font-black text-slate-900">${this.profile.quotesCreatedThisMonth}/5</p>
+                    <span class="text-xs font-bold ${this.profile.plan === 'pro' ? 'text-amber-500' : 'text-slate-400'}">
+                      ${this.profile.plan === 'pro' ? 'Pro Ilimitado' : 'Grátis'}
+                    </span>
+                  </div>
+                  <div class="w-full bg-slate-100 rounded-full h-2 mt-2 overflow-hidden">
+                    <div class="bg-emerald-500 h-2 rounded-full" style="width: ${Math.min((this.profile.quotesCreatedThisMonth/5)*100, 100)}%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Quotes Card List -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="font-bold text-slate-900 flex items-center space-x-2">
+                  <i class="fa-solid fa-clock-rotate-left text-emerald-600"></i>
+                  <span>Últimos Orçamentos</span>
+                </h3>
+                <button onclick="app.navigate('quotes')" class="text-xs font-semibold text-emerald-600 hover:text-emerald-700">Ver Todos &rarr;</button>
+              </div>
+
+              <div class="divide-y divide-slate-100">
+                ${recentQuotes.length === 0 ? `
+                  <div class="p-8 text-center text-slate-400">
+                    <i class="fa-solid fa-folder-open text-4xl mb-2 text-slate-300"></i>
+                    <p class="text-sm font-medium">Nenhum orçamento criado ainda.</p>
+                    <button onclick="app.startNewQuote()" class="mt-3 text-xs font-bold text-emerald-600 underline">Criar meu primeiro orçamento</button>
+                  </div>
+                ` : recentQuotes.map(q => this.renderQuoteCardRow(q)).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      renderQuoteCardRow(q) {
+        const statusColors = {
+          'Rascunho': 'bg-slate-100 text-slate-700 border-slate-200',
+          'Enviado': 'bg-blue-50 text-blue-700 border-blue-200',
+          'Aprovado': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+          'Recusado': 'bg-rose-50 text-rose-700 border-rose-200'
+        };
+
+        return `
+          <div class="p-4 hover:bg-slate-50/80 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-start space-x-3">
+              <div class="w-10 h-10 rounded-lg bg-slate-100 font-bold text-slate-600 flex items-center justify-center shrink-0 text-xs">
+                #${q.number}
+              </div>
+              <div>
+                <h4 class="font-bold text-slate-900 text-sm leading-tight">${q.clientName || 'Cliente não informado'}</h4>
+                <div class="flex items-center space-x-2 text-xs text-slate-500 mt-1">
+                  <span><i class="fa-regular fa-calendar mr-1"></i>${this.formatDate(q.date)}</span>
+                  <span>•</span>
+                  <span>${q.items.length} ${q.items.length === 1 ? 'item' : 'itens'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+              <div class="text-left sm:text-right">
+                <span class="text-sm font-extrabold text-slate-900 block">${this.formatCurrency(q.total)}</span>
+                <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusColors[q.status] || statusColors['Rascunho']}">
+                  ${q.status}
+                </span>
+              </div>
+
+              <!-- Action Menu -->
+              <div class="flex items-center space-x-1">
+                <button onclick="app.previewPDF('${q.id}')" title="Visualizar PDF" class="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-200/50 rounded-lg transition-colors">
+                  <i class="fa-solid fa-file-pdf text-rose-600"></i>
+                </button>
+                <button onclick="app.shareQuoteWhatsApp('${q.id}')" title="Enviar WhatsApp" class="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
+                  <i class="fa-brands fa-whatsapp text-emerald-600 text-lg"></i>
+                </button>
+                <button onclick="app.navigate('editor', { quoteId: '${q.id}' })" title="Editar" class="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      renderQuotesList() {
+        return `
+          <div class="space-y-4 animate-fade-in">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 class="text-xl font-bold text-slate-900">Seus Orçamentos</h2>
+                <p class="text-xs text-slate-500">Histórico completo de orçamentos emitidos.</p>
+              </div>
+              <button onclick="app.startNewQuote()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-2 shadow-sm">
+                <i class="fa-solid fa-plus"></i>
+                <span>Novo Orçamento</span>
+              </button>
+            </div>
+
+            <!-- Search & Filters -->
+            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-2">
+              <div class="relative flex-1">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+                <input type="text" id="quote-search" oninput="app.filterQuotes()" placeholder="Buscar por cliente ou nº..." class="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              </div>
+              <select id="quote-status-filter" onchange="app.filterQuotes()" class="px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
+                <option value="ALL">Todos os Status</option>
+                <option value="Rascunho">Rascunho</option>
+                <option value="Enviado">Enviado</option>
+                <option value="Aprovado">Aprovado</option>
+                <option value="Recusado">Recusado</option>
+              </select>
+            </div>
+
+            <!-- Quotes Container List -->
+            <div id="quotes-list-container" class="bg-white rounded-xl border border-slate-200 shadow-sm divide-y divide-slate-100 overflow-hidden">
+              ${this.quotes.length === 0 ? `
+                <div class="p-8 text-center text-slate-400">
+                  <p class="text-sm">Nenhum orçamento encontrado.</p>
+                </div>
+              ` : this.quotes.map(q => this.renderQuoteCardRow(q)).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      filterQuotes() {
+        const query = (document.getElementById('quote-search')?.value || '').toLowerCase();
+        const status = document.getElementById('quote-status-filter')?.value || 'ALL';
+
+        const filtered = this.quotes.filter(q => {
+          const matchesQuery = (q.clientName || '').toLowerCase().includes(query) || q.number.toString().includes(query);
+          const matchesStatus = status === 'ALL' || q.status === status;
+          return matchesQuery && matchesStatus;
+        });
+
+        const container = document.getElementById('quotes-list-container');
+        if (container) {
+          if (filtered.length === 0) {
+            container.innerHTML = `<div class="p-8 text-center text-slate-400 text-sm">Nenhum resultado encontrado para o filtro.</div>`;
+          } else {
+            container.innerHTML = filtered.map(q => this.renderQuoteCardRow(q)).join('');
+          }
+        }
+      }
+
+      startNewQuote() {
+        // Enforce Free Limit
+        if (this.profile.plan === 'free' && this.profile.quotesCreatedThisMonth >= 5) {
+          this.openPaywall();
+          return;
+        }
+
+        const newQuote = {
+          id: 'q_' + Date.now(),
+          number: this.profile.nextQuoteNumber || 1001,
+          clientId: this.clients[0]?.id || '',
+          clientName: this.clients[0]?.name || '',
+          date: new Date().toISOString().split('T')[0],
+          validityDays: 7,
+          status: 'Rascunho',
+          items: [
+            { description: 'Serviço de Manutenção / Mão de Obra', quantity: 1, unit: 'serviço', unitPrice: 150.00, subtotal: 150.00 }
+          ],
+          discountType: 'valor',
+          discountValue: 0,
+          extraFee: 0,
+          subtotal: 150.00,
+          total: 150.00,
+          paymentMethod: 'Pix à vista ou 2x no cartão',
+          timeframe: 'A combinar',
+          notes: this.profile.footerTerms || ''
+        };
+
+        this.activeQuote = newQuote;
+        this.navigate('editor');
+      }
+
+      renderQuoteEditor(quoteId) {
+        if (quoteId) {
+          const existing = this.quotes.find(q => q.id === quoteId);
+          if (existing) {
+            this.activeQuote = JSON.parse(JSON.stringify(existing));
+          }
+        }
+
+        if (!this.activeQuote) {
+          this.startNewQuote();
+          return '';
+        }
+
+        const q = this.activeQuote;
+
+        return `
+          <div class="space-y-5 animate-fade-in pb-12">
+            <!-- Header Bar -->
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div class="flex items-center space-x-3">
+                <button onclick="app.navigate('quotes')" class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200">
+                  <i class="fa-solid fa-arrow-left text-xs"></i>
+                </button>
+                <div>
+                  <h2 class="text-lg font-bold text-slate-900">Orçamento #${q.number}</h2>
+                  <p class="text-xs text-slate-500">Preencha os itens e valores para gerar o PDF.</p>
+                </div>
+              </div>
+
+              <div class="flex items-center space-x-2">
+                <button onclick="app.saveActiveQuote(true)" class="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition-all">
+                  Salvar Rascunho
+                </button>
+              </div>
+            </div>
+
+            <!-- Client Selector Section -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-extrabold uppercase text-slate-500 tracking-wider">Cliente</label>
+                <button onclick="app.openQuickAddClientModal()" class="text-xs font-bold text-emerald-600 hover:underline flex items-center space-x-1">
+                  <i class="fa-solid fa-user-plus"></i>
+                  <span>+ Criar Cliente</span>
+                </button>
+              </div>
+
+              <select id="editor-client-select" onchange="app.onEditorClientChange(this.value)" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white font-medium text-slate-800">
+                ${this.clients.map(c => `
+                  <option value="${c.id}" ${c.id === q.clientId ? 'selected' : ''}>${c.name} (${c.phone || 'Sem tel'})</option>
+                `).join('')}
+              </select>
+            </div>
+
+            <!-- Quote Config (Dates, Validity, Status) -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Data Emissão</label>
+                <input type="date" value="${q.date}" onchange="app.activeQuote.date = this.value" class="w-full text-xs border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500">
+              </div>
+
+              <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Validade (dias)</label>
+                <input type="number" value="${q.validityDays}" onchange="app.activeQuote.validityDays = parseInt(this.value) || 7" class="w-full text-xs border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500">
+              </div>
+
+              <div class="col-span-2 sm:col-span-1 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Status</label>
+                <select onchange="app.activeQuote.status = this.value" class="w-full text-xs border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500 bg-white font-semibold">
+                  <option value="Rascunho" ${q.status === 'Rascunho' ? 'selected' : ''}>Rascunho</option>
+                  <option value="Enviado" ${q.status === 'Enviado' ? 'selected' : ''}>Enviado</option>
+                  <option value="Aprovado" ${q.status === 'Aprovado' ? 'selected' : ''}>Aprovado</option>
+                  <option value="Recusado" ${q.status === 'Recusado' ? 'selected' : ''}>Recusado</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Items List Editor -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-4">
+              <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                <h3 class="font-bold text-slate-900 text-sm">Itens do Orçamento</h3>
+                
+                <!-- Add catalog drop -->
+                <div class="relative">
+                  <button onclick="app.toggleCatalogDropdown()" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-lg text-xs flex items-center space-x-1">
+                    <i class="fa-solid fa-book-open"></i>
+                    <span>+ Do Catálogo</span>
+                  </button>
+                  <div id="catalog-dropdown" class="hidden absolute right-0 top-8 w-64 bg-white border border-slate-200 rounded-xl shadow-xl z-20 max-h-48 overflow-y-auto divide-y divide-slate-100">
+                    ${this.catalog.map(cat => `
+                      <button onclick="app.addItemFromCatalog('${cat.id}')" class="w-full text-left p-2.5 hover:bg-slate-50 text-xs transition-colors">
+                        <p class="font-bold text-slate-800">${cat.description}</p>
+                        <p class="text-[10px] text-slate-400">${this.formatCurrency(cat.defaultPrice)} / ${cat.unit}</p>
+                      </button>
+                    `).join('')}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Item rows -->
+              <div id="quote-items-container" class="space-y-3">
+                ${q.items.map((item, idx) => this.renderQuoteItemInputRow(item, idx)).join('')}
+              </div>
+
+              <button onclick="app.addEmptyItemRow()" class="w-full py-2 border-2 border-dashed border-slate-200 hover:border-emerald-500 hover:text-emerald-600 rounded-xl text-xs font-bold text-slate-500 transition-colors flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-plus"></i>
+                <span>Adicionar Item Personalizado</span>
+              </button>
+            </div>
+
+            <!-- Calculations & Discount -->
+            <div class="bg-slate-900 text-white p-4 rounded-xl shadow-md space-y-3">
+              <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-400">Resumo de Valores</h3>
+              
+              <div class="space-y-2 text-xs border-b border-slate-800 pb-3">
+                <div class="flex justify-between">
+                  <span class="text-slate-300">Subtotal dos Itens:</span>
+                  <span id="calc-subtotal" class="font-bold text-white">${this.formatCurrency(q.subtotal)}</span>
+                </div>
+
+                <!-- Discount Input Row -->
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-slate-300">Desconto:</span>
+                  <div class="flex items-center space-x-2">
+                    <select onchange="app.updateDiscountType(this.value)" class="bg-slate-800 text-white border border-slate-700 rounded text-[11px] p-1">
+                      <option value="valor" ${q.discountType === 'valor' ? 'selected' : ''}>R$ Fixos</option>
+                      <option value="percentual" ${q.discountType === 'percentual' ? 'selected' : ''}>% Porcentagem</option>
+                    </select>
+                    <input type="number" step="0.01" value="${q.discountValue}" oninput="app.updateDiscountValue(parseFloat(this.value) || 0)" class="w-20 bg-slate-800 text-white border border-slate-700 rounded text-xs p-1 text-right font-bold">
+                  </div>
+                </div>
+
+                <!-- Extra fee -->
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-slate-300">Acréscimo / Frete:</span>
+                  <input type="number" step="0.01" value="${q.extraFee}" oninput="app.updateExtraFee(parseFloat(this.value) || 0)" class="w-20 bg-slate-800 text-white border border-slate-700 rounded text-xs p-1 text-right font-bold">
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between pt-1">
+                <span class="text-sm font-bold text-emerald-400">VALOR TOTAL:</span>
+                <span id="calc-total" class="text-2xl font-black text-white">${this.formatCurrency(q.total)}</span>
+              </div>
+            </div>
+
+            <!-- Payment & Conditions Form -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+              <h3 class="font-bold text-slate-900 text-sm">Condições e Observações</h3>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label class="font-bold text-slate-600 block mb-1">Forma de Pagamento</label>
+                  <input type="text" value="${q.paymentMethod}" onchange="app.activeQuote.paymentMethod = this.value" placeholder="Ex: Pix, 3x no cartão, à vista" class="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500">
+                </div>
+
+                <div>
+                  <label class="font-bold text-slate-600 block mb-1">Prazo de Execução</label>
+                  <input type="text" value="${q.timeframe}" onchange="app.activeQuote.timeframe = this.value" placeholder="Ex: 2 dias úteis, imediato" class="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-emerald-500">
+                </div>
+              </div>
+
+              <div>
+                <label class="text-xs font-bold text-slate-600 block mb-1">Observações / Termos</label>
+                <textarea rows="3" onchange="app.activeQuote.notes = this.value" class="w-full border border-slate-200 rounded-lg p-2 text-xs focus:ring-2 focus:ring-emerald-500">${q.notes}</textarea>
+              </div>
+            </div>
+
+            <!-- Bottom Floating Action Bar -->
+            <div class="sticky bottom-16 md:bottom-4 bg-white/95 backdrop-blur-md p-3 rounded-2xl border border-slate-200 shadow-2xl flex items-center justify-between gap-3 z-20">
+              <div>
+                <span class="text-[10px] text-slate-400 uppercase font-bold block">Total a cobrar</span>
+                <span id="floating-total-preview" class="text-lg font-black text-emerald-600">${this.formatCurrency(q.total)}</span>
+              </div>
+
+              <div class="flex items-center space-x-2">
+                <button onclick="app.previewPDFFromEditor()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-md shadow-emerald-600/30 flex items-center space-x-2 active:scale-95 transition-all">
+                  <i class="fa-solid fa-file-pdf"></i>
+                  <span>Gerar PDF</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      renderQuoteItemInputRow(item, idx) {
+        return `
+          <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 relative group">
+            <button onclick="app.removeQuoteItem(${idx})" class="absolute right-2 top-2 w-6 h-6 rounded-full bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white flex items-center justify-center text-xs transition-colors">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div>
+              <label class="text-[10px] font-bold text-slate-400 block mb-0.5">Descrição do Item / Serviço</label>
+              <input type="text" value="${item.description}" oninput="app.updateItemField(${idx}, 'description', this.value)" class="w-full border border-slate-200 rounded-lg p-1.5 text-xs font-semibold focus:ring-2 focus:ring-emerald-500 bg-white">
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="text-[10px] font-bold text-slate-400 block mb-0.5">Qtd.</label>
+                <input type="number" step="0.01" value="${item.quantity}" oninput="app.updateItemField(${idx}, 'quantity', parseFloat(this.value) || 0)" class="w-full border border-slate-200 rounded-lg p-1.5 text-xs font-bold text-slate-800 bg-white">
+              </div>
+
+              <div>
+                <label class="text-[10px] font-bold text-slate-400 block mb-0.5">Unidade</label>
+                <select onchange="app.updateItemField(${idx}, 'unit', this.value)" class="w-full border border-slate-200 rounded-lg p-1.5 text-xs font-medium bg-white">
+                  <option value="serviço" ${item.unit === 'serviço' ? 'selected' : ''}>serviço</option>
+                  <option value="un" ${item.unit === 'un' ? 'selected' : ''}>un</option>
+                  <option value="h" ${item.unit === 'h' ? 'selected' : ''}>h</option>
+                  <option value="m²" ${item.unit === 'm²' ? 'selected' : ''}>m²</option>
+                  <option value="m" ${item.unit === 'm' ? 'selected' : ''}>m</option>
+                  <option value="dia" ${item.unit === 'dia' ? 'selected' : ''}>dia</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="text-[10px] font-bold text-slate-400 block mb-0.5">Valor Unit. (R$)</label>
+                <input type="number" step="0.01" value="${item.unitPrice}" oninput="app.updateItemField(${idx}, 'unitPrice', parseFloat(this.value) || 0)" class="w-full border border-slate-200 rounded-lg p-1.5 text-xs font-bold text-slate-800 bg-white">
+              </div>
+            </div>
+
+            <div class="flex justify-between items-center pt-1 border-t border-slate-200/60 text-xs">
+              <span class="text-[11px] text-slate-400 font-medium">Subtotal Item:</span>
+              <span class="font-extrabold text-slate-800">${this.formatCurrency(item.subtotal)}</span>
+            </div>
+          </div>
+        `;
+      }
+
+      onEditorClientChange(clientId) {
+        const client = this.clients.find(c => c.id === clientId);
+        if (client && this.activeQuote) {
+          this.activeQuote.clientId = client.id;
+          this.activeQuote.clientName = client.name;
+        }
+      }
+
+      toggleCatalogDropdown() {
+        const el = document.getElementById('catalog-dropdown');
+        if (el) el.classList.toggle('hidden');
+      }
+
+      addItemFromCatalog(catId) {
+        const cat = this.catalog.find(c => c.id === catId);
+        if (cat && this.activeQuote) {
+          this.activeQuote.items.push({
+            description: cat.description,
+            quantity: 1,
+            unit: cat.unit,
+            unitPrice: cat.defaultPrice,
+            subtotal: cat.defaultPrice
+          });
+          this.recalculateActiveQuote();
+          this.toggleCatalogDropdown();
+          this.navigate('editor');
+        }
+      }
+
+      addEmptyItemRow() {
+        if (!this.activeQuote) return;
+        this.activeQuote.items.push({
+          description: 'Novo item / serviço',
+          quantity: 1,
+          unit: 'un',
+          unitPrice: 50.00,
+          subtotal: 50.00
+        });
+        this.recalculateActiveQuote();
+        this.navigate('editor');
+      }
+
+      removeQuoteItem(idx) {
+        if (!this.activeQuote || this.activeQuote.items.length <= 1) {
+          this.showToast('O orçamento precisa ter no mínimo 1 item.', 'error');
+          return;
+        }
+        this.activeQuote.items.splice(idx, 1);
+        this.recalculateActiveQuote();
+        this.navigate('editor');
+      }
+
+      updateItemField(idx, field, value) {
+        if (!this.activeQuote || !this.activeQuote.items[idx]) return;
+        this.activeQuote.items[idx][field] = value;
+        const item = this.activeQuote.items[idx];
+        item.subtotal = (item.quantity || 0) * (item.unitPrice || 0);
+        this.recalculateActiveQuote();
+        
+        // Dynamic fast update of displays without full re-render
+        const subtotalEl = document.getElementById('calc-subtotal');
+        const totalEl = document.getElementById('calc-total');
+        const floatingEl = document.getElementById('floating-total-preview');
+        if (subtotalEl) subtotalEl.textContent = this.formatCurrency(this.activeQuote.subtotal);
+        if (totalEl) totalEl.textContent = this.formatCurrency(this.activeQuote.total);
+        if (floatingEl) floatingEl.textContent = this.formatCurrency(this.activeQuote.total);
+      }
+
+      updateDiscountType(type) {
+        if (!this.activeQuote) return;
+        this.activeQuote.discountType = type;
+        this.recalculateActiveQuote();
+        this.navigate('editor');
+      }
+
+      updateDiscountValue(val) {
+        if (!this.activeQuote) return;
+        this.activeQuote.discountValue = val;
+        this.recalculateActiveQuote();
+        const totalEl = document.getElementById('calc-total');
+        const floatingEl = document.getElementById('floating-total-preview');
+        if (totalEl) totalEl.textContent = this.formatCurrency(this.activeQuote.total);
+        if (floatingEl) floatingEl.textContent = this.formatCurrency(this.activeQuote.total);
+      }
+
+      updateExtraFee(val) {
+        if (!this.activeQuote) return;
+        this.activeQuote.extraFee = val;
+        this.recalculateActiveQuote();
+        const totalEl = document.getElementById('calc-total');
+        const floatingEl = document.getElementById('floating-total-preview');
+        if (totalEl) totalEl.textContent = this.formatCurrency(this.activeQuote.total);
+        if (floatingEl) floatingEl.textContent = this.formatCurrency(this.activeQuote.total);
+      }
+
+      recalculateActiveQuote() {
+        if (!this.activeQuote) return;
+        const sub = this.activeQuote.items.reduce((sum, item) => sum + (item.subtotal || 0), 0);
+        this.activeQuote.subtotal = sub;
+
+        let disc = 0;
+        if (this.activeQuote.discountType === 'percentual') {
+          disc = sub * ((this.activeQuote.discountValue || 0) / 100);
+        } else {
+          disc = this.activeQuote.discountValue || 0;
+        }
+
+        const tot = Math.max(0, sub - disc + (this.activeQuote.extraFee || 0));
+        this.activeQuote.total = tot;
+      }
+
+      saveActiveQuote(showNotification = false) {
+        if (!this.activeQuote) return;
+        this.recalculateActiveQuote();
+
+        const existingIdx = this.quotes.findIndex(q => q.id === this.activeQuote.id);
+        if (existingIdx >= 0) {
+          this.quotes[existingIdx] = JSON.parse(JSON.stringify(this.activeQuote));
+        } else {
+          this.quotes.push(JSON.parse(JSON.stringify(this.activeQuote)));
+          this.profile.quotesCreatedThisMonth += 1;
+          this.profile.nextQuoteNumber += 1;
+        }
+
+        this.saveState();
+        if (showNotification) {
+          this.showToast('Orçamento salvo com sucesso!');
+        }
+      }
+
+      previewPDFFromEditor() {
+        this.saveActiveQuote(false);
+        this.previewPDF(this.activeQuote.id);
+      }
+
+      previewPDF(quoteId) {
+        const quote = this.quotes.find(q => q.id === quoteId);
+        if (!quote) return;
+
+        const client = this.clients.find(c => c.id === quote.clientId) || {
+          name: quote.clientName,
+          phone: '',
+          email: '',
+          address: ''
+        };
+
+        const isPro = this.profile.plan === 'pro';
+        const brandColor = isPro && this.profile.primaryColor ? this.profile.primaryColor : '#16a34a';
+
+        const modal = document.getElementById('modal-container');
+        const content = document.getElementById('modal-content');
+
+        content.innerHTML = `
+          <div class="p-4 sm:p-6 space-y-4">
+            <!-- Action Toolbar Top -->
+            <div class="flex items-center justify-between no-print border-b border-slate-200 pb-3">
+              <div class="flex items-center space-x-2">
+                <button onclick="app.closeModal()" class="p-2 text-slate-500 hover:text-slate-800 rounded-lg">
+                  <i class="fa-solid fa-arrow-left text-base"></i>
+                </button>
+                <h3 class="font-bold text-slate-900 text-sm">Pré-visualização do PDF</h3>
+              </div>
+
+              <div class="flex items-center space-x-2">
+                <button onclick="app.shareQuoteWhatsApp('${quote.id}')" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center space-x-1.5 shadow-sm">
+                  <i class="fa-brands fa-whatsapp text-sm"></i>
+                  <span class="hidden sm:inline">WhatsApp</span>
+                </button>
+                <button onclick="window.print()" class="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center space-x-1.5">
+                  <i class="fa-solid fa-print"></i>
+                  <span>Imprimir / PDF</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Simulated Printable A4 Paper Container -->
+            <div id="printable-document" class="a4-page border border-slate-200 p-6 sm:p-8 rounded-xl shadow-lg font-sans text-slate-800 space-y-6">
+              <!-- Document Header Block -->
+              <div class="flex flex-col sm:flex-row justify-between items-start gap-4 pb-6 border-b-2" style="border-color: ${brandColor}">
+                <div class="space-y-1">
+                  ${this.profile.logoUrl ? `
+                    <img src="${this.profile.logoUrl}" alt="Logo" class="h-12 object-contain mb-2">
+                  ` : ''}
+                  <h2 class="text-xl font-black tracking-tight" style="color: ${brandColor}">${this.profile.tradeName || this.profile.name}</h2>
+                  <p class="text-xs text-slate-600 font-medium">${this.profile.name} ${this.profile.document ? '• CPF/CNPJ: ' + this.profile.document : ''}</p>
+                  <p class="text-xs text-slate-500">${this.profile.address || ''}</p>
+                  <p class="text-xs text-slate-500">Tel/Whats: ${this.profile.phone} | ${this.profile.email}</p>
+                </div>
+
+                <div class="text-left sm:text-right space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-200/80 w-full sm:w-auto">
+                  <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block">ORÇAMENTO</span>
+                  <span class="text-2xl font-black text-slate-900 block">#${quote.number}</span>
+                  <p class="text-xs text-slate-500">Data: <strong class="text-slate-800">${this.formatDate(quote.date)}</strong></p>
+                  <p class="text-xs text-slate-500">Validade: <strong class="text-slate-800">${quote.validityDays} dias</strong></p>
+                </div>
+              </div>
+
+              <!-- Client Details Block -->
+              <div class="bg-slate-50/70 p-4 rounded-xl border border-slate-200">
+                <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">CLIENTE</span>
+                <p class="font-bold text-slate-900 text-sm">${client.name}</p>
+                ${client.document ? `<p class="text-xs text-slate-600">CPF/CNPJ: ${client.document}</p>` : ''}
+                ${client.phone ? `<p class="text-xs text-slate-600">Telefone: ${client.phone}</p>` : ''}
+                ${client.address ? `<p class="text-xs text-slate-600">Endereço: ${client.address}</p>` : ''}
+              </div>
+
+              <!-- Itemized Table -->
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr class="text-white uppercase font-bold" style="background-color: ${brandColor}">
+                      <th class="p-2.5 rounded-l-lg">Descrição do Serviço / Produto</th>
+                      <th class="p-2.5 text-center">Qtd</th>
+                      <th class="p-2.5 text-right">Valor Unit.</th>
+                      <th class="p-2.5 text-right rounded-r-lg">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-200">
+                    ${quote.items.map(item => `
+                      <tr>
+                        <td class="p-3 font-medium text-slate-800">${item.description}</td>
+                        <td class="p-3 text-center text-slate-600">${item.quantity} ${item.unit}</td>
+                        <td class="p-3 text-right text-slate-600">${this.formatCurrency(item.unitPrice)}</td>
+                        <td class="p-3 text-right font-bold text-slate-900">${this.formatCurrency(item.subtotal)}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Totals Breakdown & Pix Box -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start pt-2">
+                <!-- Pix & Payment details -->
+                <div class="space-y-2">
+                  ${this.profile.pixKey ? `
+                    <div class="p-3 rounded-xl bg-emerald-50/60 border border-emerald-200 text-xs space-y-1">
+                      <div class="flex items-center justify-between text-emerald-800 font-bold">
+                        <span><i class="fa-solid fa-qrcode mr-1"></i> Chave Pix para Pagamento</span>
+                        <button onclick="app.copyPixKey('${this.profile.pixKey}')" class="text-[10px] font-extrabold bg-emerald-600 text-white px-2 py-0.5 rounded hover:bg-emerald-700">Copiar</button>
+                      </div>
+                      <p class="font-mono text-slate-800 font-semibold select-all break-all">${this.profile.pixKey}</p>
+                    </div>
+                  ` : ''}
+
+                  <div class="text-xs space-y-1 text-slate-600">
+                    <p><strong>Forma de Pagamento:</strong> ${quote.paymentMethod || 'A combinar'}</p>
+                    <p><strong>Prazo de Execução:</strong> ${quote.timeframe || 'A combinar'}</p>
+                  </div>
+                </div>
+
+                <!-- Totals Table -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1 text-xs">
+                  <div class="flex justify-between text-slate-600">
+                    <span>Subtotal:</span>
+                    <span class="font-semibold">${this.formatCurrency(quote.subtotal)}</span>
+                  </div>
+                  ${quote.discountValue > 0 ? `
+                    <div class="flex justify-between text-rose-600">
+                      <span>Desconto:</span>
+                      <span class="font-semibold">-${this.formatCurrency(quote.discountType === 'percentual' ? quote.subtotal * (quote.discountValue/100) : quote.discountValue)}</span>
+                    </div>
+                  ` : ''}
+                  ${quote.extraFee > 0 ? `
+                    <div class="flex justify-between text-slate-600">
+                      <span>Acréscimo:</span>
+                      <span class="font-semibold">+${this.formatCurrency(quote.extraFee)}</span>
+                    </div>
+                  ` : ''}
+                  <div class="flex justify-between text-base font-black pt-2 border-t border-slate-300" style="color: ${brandColor}">
+                    <span>TOTAL:</span>
+                    <span>${this.formatCurrency(quote.total)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Terms / Footer Text -->
+              <div class="text-[11px] text-slate-500 border-t border-slate-200 pt-3 space-y-1">
+                <p><strong>Observações & Condições:</strong> ${quote.notes || 'Sem observações adicionais.'}</p>
+              </div>
+
+              <!-- Signatures & Watermark -->
+              <div class="pt-8 flex flex-col sm:flex-row justify-between items-center gap-6 text-center">
+                <div class="w-full sm:w-1/2 border-t border-slate-300 pt-1 text-xs text-slate-500">
+                  <p class="font-semibold text-slate-800">${this.profile.tradeName || this.profile.name}</p>
+                  <p class="text-[10px]">Prestador de Serviço</p>
+                </div>
+
+                <div class="w-full sm:w-1/2 border-t border-slate-300 pt-1 text-xs text-slate-500">
+                  <p class="font-semibold text-slate-800">${client.name}</p>
+                  <p class="text-[10px]">Aceite do Cliente</p>
+                </div>
+              </div>
+
+              <!-- Free Tier Watermark -->
+              ${!isPro ? `
+                <div class="text-center border-t border-slate-100 pt-3 no-print">
+                  <span class="text-[10px] text-slate-400 font-medium">Criado com <strong class="text-slate-600">Orça Já</strong> — aplicativo para prestadores de serviço</span>
+                </div>
+              ` : ''}
+            </div>
+
+            <!-- Conversion Action Button -->
+            <div class="flex justify-end gap-2 no-print pt-2">
+              <button onclick="app.openReceiptModalForQuote('${quote.id}')" class="w-full sm:w-auto px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-center space-x-2 shadow-sm">
+                <i class="fa-solid fa-receipt"></i>
+                <span>Transformar em Recibo</span>
+              </button>
+            </div>
+          </div>
+        `;
+
+        modal.classList.remove('hidden');
+      }
+
+      copyPixKey(key) {
+        // Fallback robust copy
+        const tempInput = document.createElement('input');
+        tempInput.value = key;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+        this.showToast('Chave Pix copiada para a área de transferência!');
+      }
+
+      shareQuoteWhatsApp(quoteId) {
+        const quote = this.quotes.find(q => q.id === quoteId);
+        if (!quote) return;
+
+        // Update status to Enviado
+        quote.status = 'Enviado';
+        this.saveState();
+
+        const message = `Olá, ${quote.clientName}! Segue o orçamento nº ${quote.number} no valor total de ${this.formatCurrency(quote.total)}. Validade de ${quote.validityDays} dias.\n\nQualquer dúvida estou à disposição!`;
+        const encoded = encodeURIComponent(message);
+        
+        // Open WhatsApp web or wa.me link
+        window.open(`https://wa.me/?text=${encoded}`, '_blank');
+        this.showToast('Redirecionando para o WhatsApp...');
+      }
+
+      closeModal() {
+        document.getElementById('modal-container')?.classList.add('hidden');
+      }
+
+      openReceiptModalForQuote(quoteId) {
+        const quote = this.quotes.find(q => q.id === quoteId);
+        if (!quote) return;
+
+        // Check Free Limit for receipts
+        if (this.profile.plan === 'free' && this.profile.receiptsCreatedThisMonth >= 3) {
+          this.openPaywall();
+          return;
+        }
+
+        const extenso = this.numeroParaExtenso(quote.total);
+
+        const modal = document.getElementById('modal-container');
+        const content = document.getElementById('modal-content');
+
+        content.innerHTML = `
+          <div class="p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h3 class="font-bold text-slate-900 text-base flex items-center space-x-2">
+                <i class="fa-solid fa-receipt text-amber-500"></i>
+                <span>Gerar Recibo de Pagamento</span>
+              </h3>
+              <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600">
+                <i class="fa-solid fa-xmark text-lg"></i>
+              </button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+              <div>
+                <label class="font-bold text-slate-700 block mb-1">Cliente</label>
+                <input type="text" id="rec-client" value="${quote.clientName}" class="w-full p-2 border border-slate-200 rounded-lg">
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="font-bold text-slate-700 block mb-1">Valor Recebido (R$)</label>
+                  <input type="number" step="0.01" id="rec-amount" value="${quote.total}" oninput="app.updateReceiptExtensoPreview(this.value)" class="w-full p-2 border border-slate-200 rounded-lg font-bold">
+                </div>
+                <div>
+                  <label class="font-bold text-slate-700 block mb-1">Data de Pagamento</label>
+                  <input type="date" id="rec-date" value="${new Date().toISOString().split('T')[0]}" class="w-full p-2 border border-slate-200 rounded-lg">
+                </div>
+              </div>
+
+              <div>
+                <label class="font-bold text-slate-700 block mb-1">Valor por Extenso (Gerado Automático)</label>
+                <p id="rec-extenso-preview" class="p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-semibold text-slate-800 italic">${extenso}</p>
+              </div>
+
+              <div>
+                <label class="font-bold text-slate-700 block mb-1">Referente a (Descrição do Serviço)</label>
+                <textarea id="rec-desc" rows="2" class="w-full p-2 border border-slate-200 rounded-lg">Serviço prestado referente ao orçamento #${quote.number}.</textarea>
+              </div>
+
+              <div>
+                <label class="font-bold text-slate-700 block mb-1">Forma de Pagamento</label>
+                <input type="text" id="rec-payment" value="${quote.paymentMethod || 'Pix'}" class="w-full p-2 border border-slate-200 rounded-lg">
+              </div>
+            </div>
+
+            <div class="pt-3 border-t border-slate-200 flex justify-end space-x-2">
+              <button onclick="app.closeModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs">Cancelar</button>
+              <button onclick="app.generateAndShowReceipt('${quote.id}')" class="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs shadow-md">
+                Gerar Recibo em PDF
+              </button>
+            </div>
+          </div>
+        `;
+
+        modal.classList.remove('hidden');
+      }
+
+      updateReceiptExtensoPreview(val) {
+        const num = parseFloat(val) || 0;
+        const el = document.getElementById('rec-extenso-preview');
+        if (el) el.textContent = this.numeroParaExtenso(num);
+      }
+
+      generateAndShowReceipt(quoteId) {
+        const clientName = document.getElementById('rec-client')?.value || '';
+        const amount = parseFloat(document.getElementById('rec-amount')?.value) || 0;
+        const date = document.getElementById('rec-date')?.value || '';
+        const desc = document.getElementById('rec-desc')?.value || '';
+        const payment = document.getElementById('rec-payment')?.value || '';
+        const extenso = this.numeroParaExtenso(amount);
+
+        const receipt = {
+          id: 'rec_' + Date.now(),
+          number: this.profile.nextReceiptNumber || 101,
+          quoteId: quoteId,
+          clientName,
+          date,
+          amount,
+          paymentMethod: payment,
+          description: desc,
+          extenso
+        };
+
+        this.receipts.push(receipt);
+        this.profile.receiptsCreatedThisMonth += 1;
+        this.profile.nextReceiptNumber += 1;
+
+        // Mark quote as Approved
+        const q = this.quotes.find(item => item.id === quoteId);
+        if (q) q.status = 'Aprovado';
+
+        this.saveState();
+        this.renderReceiptPDF(receipt);
+      }
+
+      renderReceiptPDF(rec) {
+        const modal = document.getElementById('modal-container');
+        const content = document.getElementById('modal-content');
+        const brandColor = this.profile.primaryColor || '#16a34a';
+
+        content.innerHTML = `
+          <div class="p-4 sm:p-6 space-y-4">
+            <div class="flex items-center justify-between no-print border-b border-slate-200 pb-3">
+              <h3 class="font-bold text-slate-900 text-sm">Recibo Emitido #${rec.number}</h3>
+              <div class="flex items-center space-x-2">
+                <button onclick="window.print()" class="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center space-x-1.5">
+                  <i class="fa-solid fa-print"></i>
+                  <span>Imprimir / Salvar PDF</span>
+                </button>
+                <button onclick="app.closeModal()" class="p-2 text-slate-500 hover:text-slate-800">
+                  <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Receipt A4 Box -->
+            <div id="printable-document" class="a4-page border-2 border-slate-300 p-6 sm:p-8 rounded-xl shadow-lg font-sans text-slate-800 space-y-6">
+              <div class="flex justify-between items-center border-b-2 pb-4" style="border-color: ${brandColor}">
+                <div>
+                  <h2 class="text-xl font-black" style="color: ${brandColor}">${this.profile.tradeName || this.profile.name}</h2>
+                  <p class="text-xs text-slate-500">${this.profile.document ? 'CNPJ/CPF: ' + this.profile.document : ''}</p>
+                </div>
+                <div class="text-right">
+                  <span class="text-xs font-bold uppercase tracking-widest text-slate-400 block">RECIBO DE PAGAMENTO</span>
+                  <span class="text-2xl font-black text-slate-900">#${rec.number}</span>
+                </div>
+              </div>
+
+              <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center">
+                <span class="text-xs font-bold text-slate-500">VALOR RECEBIDO:</span>
+                <span class="text-2xl font-black text-slate-900">${this.formatCurrency(rec.amount)}</span>
+              </div>
+
+              <div class="space-y-4 text-xs sm:text-sm leading-relaxed">
+                <p>
+                  Recebi(emos) de <strong>${rec.clientName}</strong> a importância exata de 
+                  <strong class="underline">${rec.extenso}</strong> (${this.formatCurrency(rec.amount)}), referente a 
+                  <strong>${rec.description}</strong>, pago através de <strong>${rec.paymentMethod}</strong>.
+                </p>
+                <p class="text-slate-500 text-xs">
+                  Para clareza e comprovação, firmo(amos) o presente recibo dando plena quitação do valor acima citado.
+                </p>
+              </div>
+
+              <div class="pt-12 flex justify-between items-end border-t border-slate-200">
+                <div class="text-xs text-slate-500">
+                  <p>Data: <strong>${this.formatDate(rec.date)}</strong></p>
+                </div>
+
+                <div class="text-center w-64 border-t border-slate-400 pt-1">
+                  <p class="font-bold text-xs text-slate-900">${this.profile.name}</p>
+                  <p class="text-[10px] text-slate-500">Assinatura do Emissor</p>
+                </div>
+              </div>
+
+              <div class="text-center border-t border-slate-100 pt-3 text-[10px] text-slate-400">
+                Documento sem valor fiscal. Emitido via Orça Já.
+              </div>
+            </div>
+          </div>
+        `;
+
+        modal.classList.remove('hidden');
+      }
+
+      numeroParaExtenso(valor) {
+        if (!valor || valor <= 0) return 'zero reais';
+
+        const unidades = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez', 'onde', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove'];
+        const dezenas = ['', '', 'vinte', 'trinta', 'quarenta', 'cinquenta', 'sessenta', 'setenta', 'oitenta', 'noventa'];
+        const centenas = ['', 'cento', 'duzentos', 'trezentos', 'quatrocentos', 'quinhentos', 'seiscentos', 'setecentos', 'oitocentos', 'novecentos'];
+
+        const converterGrupo = (n) => {
+          if (n === 0) return '';
+          if (n === 100) return 'cem';
+          let res = '';
+          const c = Math.floor(n / 100);
+          const d = Math.floor((n % 100) / 10);
+          const u = n % 10;
+
+          if (c > 0) res += centenas[c];
+
+          const resto = n % 100;
+          if (resto > 0) {
+            if (res !== '') res += ' e ';
+            if (resto < 20) {
+              res += unidades[resto];
+            } else {
+              res += dezenas[d];
+              if (u > 0) res += ' e ' + unidades[u];
+            }
+          }
+          return res;
+        };
+
+        const inteiros = Math.floor(valor);
+        const centavos = Math.round((valor - inteiros) * 100);
+
+        let textoInteiro = '';
+        if (inteiros === 0) {
+          textoInteiro = '';
+        } else if (inteiros < 1000) {
+          textoInteiro = converterGrupo(inteiros);
+        } else if (inteiros < 1000000) {
+          const milhares = Math.floor(inteiros / 1000);
+          const restoMil = inteiros % 1000;
+          const strMil = milhares === 1 ? 'um mil' : converterGrupo(milhares) + ' mil';
+          const strResto = converterGrupo(restoMil);
+          textoInteiro = strMil + (strResto ? (restoMil < 100 ? ' e ' : ' ') + strResto : '');
+        } else {
+          textoInteiro = inteiros.toString(); // Fallback for very high numbers
+        }
+
+        let resultado = '';
+        if (inteiros > 0) {
+          resultado += textoInteiro + (inteiros === 1 ? ' real' : ' reais');
+        }
+
+        if (centavos > 0) {
+          const strCentavos = converterGrupo(centavos) + (centavos === 1 ? ' centavo' : ' centavos');
+          resultado += (resultado ? ' e ' : '') + strCentavos;
+        }
+
+        return resultado || 'zero reais';
+      }
+
+      renderClientsList() {
+        return `
+          <div class="space-y-4 animate-fade-in">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-xl font-bold text-slate-900">Seus Clientes</h2>
+                <p class="text-xs text-slate-500">Cadastre clientes para usar nos orçamentos.</p>
+              </div>
+              <button onclick="app.openQuickAddClientModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center space-x-1.5 shadow-sm">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Novo Cliente</span>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              ${this.clients.length === 0 ? `
+                <div class="col-span-2 bg-white p-8 rounded-xl border border-slate-200 text-center text-slate-400 text-sm">
+                  Nenhum cliente cadastrado ainda.
+                </div>
+              ` : this.clients.map(c => `
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-start">
+                  <div class="space-y-1">
+                    <h4 class="font-bold text-slate-900 text-sm">${c.name}</h4>
+                    ${c.phone ? `<p class="text-xs text-slate-500"><i class="fa-brands fa-whatsapp text-emerald-600 mr-1"></i>${c.phone}</p>` : ''}
+                    ${c.email ? `<p class="text-xs text-slate-500"><i class="fa-regular fa-envelope mr-1"></i>${c.email}</p>` : ''}
+                    ${c.address ? `<p class="text-[11px] text-slate-400 mt-1">${c.address}</p>` : ''}
+                  </div>
+                  <button onclick="app.deleteClient('${c.id}')" class="text-slate-300 hover:text-rose-500 p-1">
+                    <i class="fa-solid fa-trash-can text-xs"></i>
+                  </button>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      openQuickAddClientModal() {
+        const modal = document.getElementById('modal-container');
+        const content = document.getElementById('modal-content');
+
+        content.innerHTML = `
+          <div class="p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h3 class="font-bold text-slate-900 text-base">Novo Cliente</h3>
+              <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600">
+                <i class="fa-solid fa-xmark text-lg"></i>
+              </button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+              <div>
+                <label class="font-bold text-slate-700 block mb-1">Nome Completo / Razão Social *</label>
+                <input type="text" id="new-cli-name" placeholder="Ex: Maria das Dores" class="w-full p-2 border border-slate-200 rounded-lg">
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="font-bold text-slate-700 block mb-1">WhatsApp / Telefone</label>
+                  <input type="text" id="new-cli-phone" placeholder="11999998888" class="w-full p-2 border border-slate-200 rounded-lg">
+                </div>
+                <div>
+                  <label class="font-bold text-slate-700 block mb-1">CPF / CNPJ</label>
+                  <input type="text" id="new-cli-doc" placeholder="Opcional" class="w-full p-2 border border-slate-200 rounded-lg">
+                </div>
+              </div>
+
+              <div>
+                <label class="font-bold text-slate-700 block mb-1">E-mail</label>
+                <input type="email" id="new-cli-email" placeholder="cliente@email.com" class="w-full p-2 border border-slate-200 rounded-lg">
+              </div>
+
+              <div>
+                <label class="font-bold text-slate-700 block mb-1">Endereço Completo</label>
+                <input type="text" id="new-cli-addr" placeholder="Rua, número, bairro, cidade" class="w-full p-2 border border-slate-200 rounded-lg">
+              </div>
+            </div>
+
+            <div class="pt-3 border-t border-slate-200 flex justify-end space-x-2">
+              <button onclick="app.closeModal()" class="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl text-xs">Cancelar</button>
+              <button onclick="app.saveNewClient()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-md">Salvar Cliente</button>
+            </div>
+          </div>
+        `;
+
+        modal.classList.remove('hidden');
+      }
+
+      saveNewClient() {
+        const name = document.getElementById('new-cli-name')?.value || '';
+        if (!name) {
+          this.showToast('Informe pelo menos o nome do cliente.', 'error');
+          return;
+        }
+
+        const client = {
+          id: 'cli_' + Date.now(),
+          name,
+          phone: document.getElementById('new-cli-phone')?.value || '',
+          document: document.getElementById('new-cli-doc')?.value || '',
+          email: document.getElementById('new-cli-email')?.value || '',
+          address: document.getElementById('new-cli-addr')?.value || ''
+        };
+
+        this.clients.push(client);
+        this.saveState();
+        this.closeModal();
+        this.showToast('Cliente cadastrado!');
+
+        if (this.currentTab === 'editor' && this.activeQuote) {
+          this.activeQuote.clientId = client.id;
+          this.activeQuote.clientName = client.name;
+          this.navigate('editor');
+        } else if (this.currentTab === 'clients') {
+          this.navigate('clients');
+        }
+      }
+
+      deleteClient(id) {
+        this.clients = this.clients.filter(c => c.id !== id);
+        this.saveState();
+        this.navigate('clients');
+        this.showToast('Cliente removido.');
+      }
+
+      renderSettings() {
+        const p = this.profile;
+
+        return `
+          <div class="space-y-5 animate-fade-in pb-8">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div>
+                <h2 class="text-xl font-bold text-slate-900">Configurações do Prestador</h2>
+                <p class="text-xs text-slate-500">Altere seus dados para que apareçam nos PDFs.</p>
+              </div>
+
+              <button onclick="app.openPaywall()" class="px-3 py-1.5 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold rounded-xl text-xs flex items-center space-x-1.5 shadow-sm">
+                <i class="fa-solid fa-crown text-xs"></i>
+                <span>Gerenciar Plano</span>
+              </button>
+            </div>
+
+            <!-- Profession Preset Selector -->
+            <div class="bg-emerald-50/60 border border-emerald-200 p-4 rounded-xl space-y-2">
+              <label class="text-xs font-extrabold uppercase text-emerald-800 tracking-wider">Profissão / Nicho de Atuação</label>
+              <div class="flex gap-2">
+                <select id="prof-preset" onchange="app.applyProfessionPreset(this.value)" class="w-full text-xs p-2 border border-emerald-300 rounded-lg bg-white font-bold text-slate-800">
+                  <option value="Eletricista" ${p.profession === 'Eletricista' ? 'selected' : ''}>Eletricista</option>
+                  <option value="Encanador" ${p.profession === 'Encanador' ? 'selected' : ''}>Encanador</option>
+                  <option value="Fotógrafo" ${p.profession === 'Fotógrafo' ? 'selected' : ''}>Fotógrafo / Vídeo</option>
+                  <option value="Técnico de Ar" ${p.profession === 'Técnico de Ar' ? 'selected' : ''}>Técnico de Ar-Condicionado</option>
+                  <option value="Pintor" ${p.profession === 'Pintor' ? 'selected' : ''}>Pintor Residencial</option>
+                  <option value="Designer" ${p.profession === 'Designer' ? 'selected' : ''}>Designer / Freelancer</option>
+                </select>
+              </div>
+              <p class="text-[11px] text-emerald-700">Selecione para pré-carregar itens comuns no catálogo de serviços.</p>
+            </div>
+
+            <!-- Profile Form -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3 text-xs">
+              <h3 class="font-bold text-slate-900 text-sm border-b border-slate-100 pb-2">Seus Dados Comerciais</h3>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="font-bold text-slate-600 block mb-1">Seu Nome *</label>
+                  <input type="text" id="prof-name" value="${p.name}" class="w-full p-2 border border-slate-200 rounded-lg font-medium">
+                </div>
+
+                <div>
+                  <label class="font-bold text-slate-600 block mb-1">Nome Fantasia / Empresa</label>
+                  <input type="text" id="prof-trade" value="${p.tradeName}" class="w-full p-2 border border-slate-200 rounded-lg font-medium">
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="font-bold text-slate-600 block mb-1">CPF ou CNPJ</label>
+                  <input type="text" id="prof-doc" value="${p.document}" class="w-full p-2 border border-slate-200 rounded-lg">
+                </div>
+
+                <div>
+                  <label class="font-bold text-slate-600 block mb-1">WhatsApp / Telefone *</label>
+                  <input type="text" id="prof-phone" value="${p.phone}" class="w-full p-2 border border-slate-200 rounded-lg">
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="font-bold text-slate-600 block mb-1">E-mail de Contato</label>
+                  <input type="email" id="prof-email" value="${p.email}" class="w-full p-2 border border-slate-200 rounded-lg">
+                </div>
+
+                <div>
+                  <label class="font-bold text-slate-600 block mb-1">Chave Pix (Para receber)</label>
+                  <input type="text" id="prof-pix" value="${p.pixKey}" class="w-full p-2 border border-slate-200 rounded-lg font-mono">
+                </div>
+              </div>
+
+              <div>
+                <label class="font-bold text-slate-600 block mb-1">Endereço Comercial</label>
+                <input type="text" id="prof-addr" value="${p.address}" class="w-full p-2 border border-slate-200 rounded-lg">
+              </div>
+
+              <!-- Brand Color & Logo -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <div>
+                  <label class="font-bold text-slate-600 block mb-1">Cor Principal do PDF (Pro)</label>
+                  <input type="color" id="prof-color" value="${p.primaryColor || '#16a34a'}" class="w-full h-9 p-1 border border-slate-200 rounded-lg cursor-pointer">
+                </div>
+
+                <div>
+                  <label class="font-bold text-slate-600 block mb-1">URL da Logo (Pro)</label>
+                  <input type="text" id="prof-logo" value="${p.logoUrl || ''}" placeholder="https://suaempresa.com/logo.png" class="w-full p-2 border border-slate-200 rounded-lg">
+                </div>
+              </div>
+
+              <div>
+                <label class="font-bold text-slate-600 block mb-1">Termos Padrão / Rodapé do Orçamento</label>
+                <textarea id="prof-terms" rows="2" class="w-full p-2 border border-slate-200 rounded-lg">${p.footerTerms}</textarea>
+              </div>
+
+              <div class="pt-2">
+                <button onclick="app.saveProfileSettings()" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs shadow-md">
+                  Salvar Alterações
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      applyProfessionPreset(prof) {
+        this.profile.profession = prof;
+        const presets = {
+          'Eletricista': [
+            { id: 'cat_e1', description: 'Instalação de Chuveiro Elétrico', unit: 'serviço', defaultPrice: 120.00 },
+            { id: 'cat_e2', description: 'Troca de Disjuntor no Quadro', unit: 'un', defaultPrice: 85.00 },
+            { id: 'cat_e3', description: 'Instalação de Luminária / Lustre', unit: 'un', defaultPrice: 95.00 }
+          ],
+          'Encanador': [
+            { id: 'cat_p1', description: 'Desentupimento de Pia / Ralo', unit: 'serviço', defaultPrice: 150.00 },
+            { id: 'cat_p2', description: 'Troca de Reparo de Torneira', unit: 'un', defaultPrice: 70.00 },
+            { id: 'cat_p3', description: 'Instalação de Vaso Sanitário', unit: 'un', defaultPrice: 180.00 }
+          ],
+          'Fotógrafo': [
+            { id: 'cat_f1', description: 'Cobertura Fotográfica de Evento (Hora)', unit: 'h', defaultPrice: 250.00 },
+            { id: 'cat_f2', description: 'Ensaio Fotográfico Externo (Pacote)', unit: 'serviço', defaultPrice: 600.00 }
+          ],
+          'Técnico de Ar': [
+            { id: 'cat_a1', description: 'Higienização e Limpeza de Split', unit: 'un', defaultPrice: 180.00 },
+            { id: 'cat_a2', description: 'Carga de Gás Refrigerante R410a', unit: 'serviço', defaultPrice: 220.00 }
+          ],
+          'Pintor': [
+            { id: 'cat_pt1', description: 'Pintura Interna Parede/Teto (m²)', unit: 'm²', defaultPrice: 22.00 },
+            { id: 'cat_pt2', description: 'Emassamento de Parede com Massa Corrida', unit: 'm²', defaultPrice: 18.00 }
+          ],
+          'Designer': [
+            { id: 'cat_d1', description: 'Criação de Identidade Visual / Logo', unit: 'serviço', defaultPrice: 850.00 },
+            { id: 'cat_d2', description: 'Design de Arte para Redes Sociais', unit: 'un', defaultPrice: 60.00 }
+          ]
+        };
+
+        if (presets[prof]) {
+          this.catalog = presets[prof];
+          this.saveState();
+          this.showToast(`Itens de ${prof} pré-carregados no catálogo!`);
+        }
+      }
+
+      saveProfileSettings() {
+        this.profile.name = document.getElementById('prof-name')?.value || '';
+        this.profile.tradeName = document.getElementById('prof-trade')?.value || '';
+        this.profile.document = document.getElementById('prof-doc')?.value || '';
+        this.profile.phone = document.getElementById('prof-phone')?.value || '';
+        this.profile.email = document.getElementById('prof-email')?.value || '';
+        this.profile.pixKey = document.getElementById('prof-pix')?.value || '';
+        this.profile.address = document.getElementById('prof-addr')?.value || '';
+        this.profile.primaryColor = document.getElementById('prof-color')?.value || '#16a34a';
+        this.profile.logoUrl = document.getElementById('prof-logo')?.value || '';
+        this.profile.footerTerms = document.getElementById('prof-terms')?.value || '';
+
+        this.saveState();
+        this.showToast('Configurações salvas!');
+      }
+
+      openPaywall() {
+        const modal = document.getElementById('modal-container');
+        const content = document.getElementById('modal-content');
+
+        content.innerHTML = `
+          <div class="p-6 space-y-5 bg-slate-900 text-white rounded-2xl">
+            <div class="flex justify-between items-start">
+              <div>
+                <span class="text-xs font-extrabold text-amber-400 uppercase tracking-widest bg-amber-400/10 px-2.5 py-1 rounded-full border border-amber-400/20">Seja Pro</span>
+                <h3 class="text-2xl font-black mt-2">Desbloqueie Todos os Recursos</h3>
+              </div>
+              <button onclick="app.closeModal()" class="text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-xl"></i>
+              </button>
+            </div>
+
+            <p class="text-xs text-slate-300">Você já utilizou ${this.profile.quotesCreatedThisMonth}/5 orçamentos grátis este mês. Assine o Pro para crescer seu negócio.</p>
+
+            <div class="space-y-3 text-xs">
+              <div class="flex items-center space-x-3 p-2.5 bg-slate-800/80 rounded-xl border border-slate-700">
+                <i class="fa-solid fa-infinity text-amber-400 text-base"></i>
+                <span>Orçamentos e Recibos <strong>Ilimitados</strong></span>
+              </div>
+              <div class="flex items-center space-x-3 p-2.5 bg-slate-800/80 rounded-xl border border-slate-700">
+                <i class="fa-solid fa-wand-magic-sparkles text-amber-400 text-base"></i>
+                <span><strong>Sem Marca d'Água</strong> "Orça Já" nos PDFs</span>
+              </div>
+              <div class="flex items-center space-x-3 p-2.5 bg-slate-800/80 rounded-xl border border-slate-700">
+                <i class="fa-solid fa-palette text-amber-400 text-base"></i>
+                <span><strong>Sua Logo e Cores</strong> personalizadas</span>
+              </div>
+            </div>
+
+            <!-- Pricing Box -->
+            <div class="p-4 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl flex justify-between items-center">
+              <div>
+                <p class="text-xs font-bold text-emerald-100">Plano Mensal Pro</p>
+                <p class="text-2xl font-black text-white">R$ 14,90 <span class="text-xs font-normal text-emerald-100">/mês</span></p>
+              </div>
+              <button onclick="app.simulateUpgrade()" class="px-5 py-3 bg-white text-slate-900 font-extrabold rounded-xl text-xs shadow-lg hover:bg-slate-100 transition-all active:scale-95">
+                Assinar Agora (Pix / Cartão)
+              </button>
+            </div>
+          </div>
+        `;
+
+        modal.classList.remove('hidden');
+      }
+
+      simulateUpgrade() {
+        this.profile.plan = 'pro';
+        this.saveState();
+        this.closeModal();
+        this.showToast('Parabéns! Seu Plano Pro foi ativado com sucesso! 🎉');
+        this.navigate(this.currentTab);
+      }
+
+      /* Helpers */
+      formatCurrency(val) {
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
+      }
+
+      formatDate(dateStr) {
+        if (!dateStr) return '';
+        const [y, m, d] = dateStr.split('-');
+        return `${d}/${m}/${y}`;
+      }
+    }
+
+    // Launch App instance on load
+    let app;
+    window.onload = function() {
+      app = new OrçaJaApp();
+      app.init();
+    };
+  </script>
+</body>
+</html>
