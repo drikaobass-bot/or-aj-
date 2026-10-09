@@ -4,37 +4,30 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Orça Já - Gerador de Orçamentos e Recibos</title>
-
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
   <script>
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
           colors: {
-            brand: {
-              50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e', 600: '#16a34a',
-              700: '#15803d', 800: '#166534',
-            }
+            brand: { 50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e', 600: '#16a34a', 700: '#15803d', 800: '#166534' }
           },
           fontFamily: { sans: ['Inter', 'sans-serif'] }
         }
       }
     }
   </script>
-
   <style>
     body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #f1f5f9; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     .a4-page { min-height: 297mm; width: 100%; max-width: 210mm; margin: 0 auto; background: white; }
-
     @media print {
       html, body { background: white !important; margin: 0 !important; padding: 0 !important; height: auto !important; overflow: visible !important; }
       #app, #toast, .no-print, header, nav, button:not(#printable-document button) { display: none !important; }
@@ -45,9 +38,7 @@
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen pb-20 md:pb-6">
-
   <div id="app" class="max-w-4xl mx-auto min-h-screen flex flex-col bg-white shadow-xl md:my-4 md:rounded-2xl overflow-hidden border border-slate-200">
-
     <header class="bg-slate-900 text-white px-4 py-3 sticky top-0 z-30 flex items-center justify-between border-b border-slate-800 shadow-sm">
       <div class="flex items-center space-x-3">
         <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-green-400 flex items-center justify-center font-bold text-slate-900 shadow-md">
@@ -63,54 +54,34 @@
           <i class="fa-solid fa-crown text-[10px] text-amber-400"></i>
           <span id="plan-text">Plano Grátis</span>
         </button>
-        <button onclick="app.openAuthModal()" id="auth-btn" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-all">
-          Entrar
-        </button>
+        <button onclick="app.openAuthModal()" id="auth-btn" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-all">Entrar</button>
       </div>
     </header>
-
     <main id="main-content" class="flex-1 p-4 md:p-6 overflow-y-auto"></main>
-
     <nav class="fixed bottom-0 left-0 right-0 max-w-4xl mx-auto bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 px-2 py-1.5 flex justify-around items-center md:sticky md:border-t-0 md:bg-transparent">
-      <button onclick="app.navigate('dashboard')" id="nav-dashboard" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors">
-        <i class="fa-solid fa-chart-pie text-lg mb-0.5"></i><span>Início</span>
-      </button>
-      <button onclick="app.navigate('quotes')" id="nav-quotes" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors">
-        <i class="fa-solid fa-file-invoice text-lg mb-0.5"></i><span>Orçamentos</span>
-      </button>
-      <button onclick="app.startNewQuote()" class="w-12 h-12 -mt-5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 active:scale-95 transition-all">
-        <i class="fa-solid fa-plus text-xl"></i>
-      </button>
-      <button onclick="app.navigate('receipts')" id="nav-receipts" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors">
-        <i class="fa-solid fa-receipt text-lg mb-0.5"></i><span>Recibos</span>
-      </button>
-      <button onclick="app.navigate('clients')" id="nav-clients" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors">
-        <i class="fa-solid fa-users text-lg mb-0.5"></i><span>Clientes</span>
-      </button>
-      <button onclick="app.navigate('settings')" id="nav-settings" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors">
-        <i class="fa-solid fa-gear text-lg mb-0.5"></i><span>Ajustes</span>
-      </button>
+      <button onclick="app.navigate('dashboard')" id="nav-dashboard" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors"><i class="fa-solid fa-chart-pie text-lg mb-0.5"></i><span>Início</span></button>
+      <button onclick="app.navigate('quotes')" id="nav-quotes" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors"><i class="fa-solid fa-file-invoice text-lg mb-0.5"></i><span>Orçamentos</span></button>
+      <button onclick="app.startNewQuote()" class="w-12 h-12 -mt-5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 active:scale-95 transition-all"><i class="fa-solid fa-plus text-xl"></i></button>
+      <button onclick="app.navigate('receipts')" id="nav-receipts" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors"><i class="fa-solid fa-receipt text-lg mb-0.5"></i><span>Recibos</span></button>
+      <button onclick="app.navigate('clients')" id="nav-clients" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors"><i class="fa-solid fa-users text-lg mb-0.5"></i><span>Clientes</span></button>
+      <button onclick="app.navigate('settings')" id="nav-settings" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors"><i class="fa-solid fa-gear text-lg mb-0.5"></i><span>Ajustes</span></button>
     </nav>
   </div>
-
   <div id="toast" class="fixed top-16 right-4 z-50 transform translate-y-[-100px] opacity-0 transition-all duration-300 pointer-events-none">
     <div class="bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3 border border-slate-700 max-w-sm">
       <div id="toast-icon" class="text-emerald-400 text-lg"><i class="fa-solid fa-circle-check"></i></div>
       <p id="toast-message" class="text-sm font-medium">Operação realizada!</p>
     </div>
   </div>
-
   <div id="modal-container" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
     <div id="modal-content" class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transform transition-all"></div>
   </div>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const SUPABASE_URL = 'https://ecxgdndfyazyyhhctlgc.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_bqcC7xQtqTxSe_GSMBxoYA_a_EIk8qK';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   </script>
-
   <script>
     const DEFAULT_PROFILE = {
       name: '', tradeName: '', document: '', phone: '', email: '',
@@ -118,28 +89,24 @@
       footerTerms: 'Orçamento válido por 7 dias. Pagamento em até 3x no cartão sem juros ou 5% de desconto no Pix.',
       plan: 'free'
     };
-
     const QUOTE_STATUSES = ['Rascunho', 'Enviado', 'Aprovado', 'Recusado'];
+    const SUBSCRIPTION_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutos
 
     class OrçaJaApp {
       constructor() {
         this.user = null;
         this.profile = { ...DEFAULT_PROFILE };
+        this.subscription = null;
         this.clients = [];
         this.quotes = [];
         this.receipts = [];
         this.currentTab = 'dashboard';
         this.activeQuote = null;
+        this.subscriptionTimer = null;
       }
 
-      // ---------- Utilidades ----------
       generateId() {
         if (window.crypto && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
-        if (window.crypto && crypto.getRandomValues) {
-          return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-          );
-        }
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
           const r = Math.random() * 16 | 0;
           const v = c === 'x' ? r : (r & 0x3 | 0x8);
@@ -171,17 +138,68 @@
           this.user = session?.user || null;
           if (this.user) {
             await this.loadUserDataFromSupabase();
+            await this.loadSubscription();
           } else {
             this.loadLocalFallback();
           }
           this.updateHeaderBadge();
           this.navigate('dashboard');
+          this.startSubscriptionWatcher();
         } catch (e) {
           console.error('Erro na inicialização:', e);
           this.loadLocalFallback();
           this.updateHeaderBadge();
           this.navigate('dashboard');
         }
+      }
+
+      startSubscriptionWatcher() {
+        if (this.subscriptionTimer) clearInterval(this.subscriptionTimer);
+        this.subscriptionTimer = setInterval(() => {
+          if (this.user) this.loadSubscription();
+        }, SUBSCRIPTION_CHECK_INTERVAL);
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible' && this.user) {
+            this.loadSubscription();
+          }
+        });
+      }
+
+      async loadSubscription() {
+        if (!this.user) { this.subscription = null; return; }
+        try {
+          const { data, error } = await supabaseClient
+            .from('subscriptions')
+            .select('*')
+            .eq('user_id', this.user.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (error || !data) {
+            this.subscription = null;
+            this.updateHeaderBadge();
+            return;
+          }
+
+          const now = new Date();
+          const end = new Date(data.end_date);
+          const isActive = data.status === 'active' && end > now;
+
+          this.subscription = {
+            ...data,
+            isActive,
+            daysRemaining: isActive ? Math.ceil((end - now) / (1000 * 60 * 60 * 24)) : 0,
+          };
+          this.updateHeaderBadge();
+        } catch (e) {
+          console.error('Erro ao carregar assinatura:', e);
+          this.subscription = null;
+        }
+      }
+
+      isPro() {
+        return this.subscription?.isActive === true;
       }
 
       loadLocalFallback() {
@@ -192,9 +210,7 @@
           this.receipts = JSON.parse(localStorage.getItem('orca_receipts')) || [];
         } catch (e) {
           this.profile = { ...DEFAULT_PROFILE };
-          this.clients = [];
-          this.quotes = [];
-          this.receipts = [];
+          this.clients = []; this.quotes = []; this.receipts = [];
         }
         if (!this.profile.plan) this.profile.plan = 'free';
       }
@@ -202,15 +218,13 @@
       async loadUserDataFromSupabase() {
         if (!this.user) return;
         try {
-          // Perfil
           let { data: profileData, error: profErr } = await supabaseClient
             .from('profiles').select('*').eq('id', this.user.id).maybeSingle();
-
           if (profErr) console.error('Erro ao buscar perfil:', profErr);
 
           if (!profileData) {
             const newProf = { id: this.user.id, email: this.user.email, plan: 'free', ...DEFAULT_PROFILE };
-            delete newProf.id_default; // segurança
+            delete newProf.id_default;
             const { error: insErr } = await supabaseClient.from('profiles').insert([{ ...newProf, id: this.user.id }]);
             if (insErr) console.error('Erro ao criar perfil:', insErr);
             profileData = newProf;
@@ -229,7 +243,6 @@
             plan: profileData.plan || 'free'
           };
 
-          // Clientes
           const { data: clientsData, error: cliErr } = await supabaseClient
             .from('clients').select('*').eq('user_id', this.user.id).order('name', { ascending: true });
           if (cliErr) console.error('Erro ao carregar clientes:', cliErr);
@@ -238,16 +251,12 @@
             email: c.email || '', address: c.address || ''
           }));
 
-          // Orçamentos
           const { data: quotesData, error: qErr } = await supabaseClient
             .from('quotes').select('*').eq('user_id', this.user.id).order('number', { ascending: false });
           if (qErr) console.error('Erro ao carregar orçamentos:', qErr);
           this.quotes = (quotesData || []).map(q => ({
-            id: q.id,
-            number: q.number,
-            clientName: q.client_name || '',
-            date: q.date,
-            validityDays: q.validity_days || 7,
+            id: q.id, number: q.number, clientName: q.client_name || '',
+            date: q.date, validityDays: q.validity_days || 7,
             status: q.status || 'Rascunho',
             items: Array.isArray(q.items) ? q.items : [],
             discountType: q.discount_type || 'valor',
@@ -260,19 +269,14 @@
             notes: q.notes || ''
           }));
 
-          // Recibos
           const { data: receiptsData, error: rErr } = await supabaseClient
             .from('receipts').select('*').eq('user_id', this.user.id).order('number', { ascending: false });
           if (rErr) console.error('Erro ao carregar recibos:', rErr);
           this.receipts = (receiptsData || []).map(r => ({
-            id: r.id, number: r.number,
-            payerName: r.payer_name || '',
-            receiverName: r.receiver_name || '',
-            date: r.date,
-            amount: Number(r.amount) || 0,
-            description: r.description || '',
-            paymentMethod: r.payment_method || 'Pix',
-            notes: r.notes || ''
+            id: r.id, number: r.number, payerName: r.payer_name || '',
+            receiverName: r.receiver_name || '', date: r.date,
+            amount: Number(r.amount) || 0, description: r.description || '',
+            paymentMethod: r.payment_method || 'Pix', notes: r.notes || ''
           }));
         } catch (e) {
           console.error('Erro ao carregar dados do Supabase:', e);
@@ -281,7 +285,6 @@
       }
 
       async saveState() {
-        // Cache local sempre (backup + usuários deslogados)
         try {
           localStorage.setItem('orca_profile', JSON.stringify(this.profile));
           localStorage.setItem('orca_clients', JSON.stringify(this.clients));
@@ -291,14 +294,10 @@
 
         if (this.user) {
           const { error } = await supabaseClient.from('profiles').update({
-            name: this.profile.name,
-            trade_name: this.profile.tradeName,
-            document: this.profile.document,
-            phone: this.profile.phone,
-            email: this.profile.email,
-            address: this.profile.address,
-            profession: this.profile.profession,
-            pix_key: this.profile.pixKey,
+            name: this.profile.name, trade_name: this.profile.tradeName,
+            document: this.profile.document, phone: this.profile.phone,
+            email: this.profile.email, address: this.profile.address,
+            profession: this.profile.profession, pix_key: this.profile.pixKey,
             footer_terms: this.profile.footerTerms
           }).eq('id', this.user.id);
           if (error) console.error('Erro ao salvar perfil:', error);
@@ -307,10 +306,11 @@
       }
 
       updateHeaderBadge() {
-        const isPro = this.profile.plan === 'pro';
+        const isPro = this.isPro();
         const badgeText = document.getElementById('plan-text');
         const badgeBtn = document.getElementById('plan-badge');
         const authBtn = document.getElementById('auth-btn');
+        if (!badgeText) return;
 
         if (isPro) {
           badgeText.textContent = 'Plano Pro';
@@ -330,13 +330,12 @@
       }
 
       async logout() {
+        if (this.subscriptionTimer) clearInterval(this.subscriptionTimer);
         await supabaseClient.auth.signOut();
         this.user = null;
         this.profile = { ...DEFAULT_PROFILE };
-        this.clients = [];
-        this.quotes = [];
-        this.receipts = [];
-        // Limpa cache do usuário anterior
+        this.subscription = null;
+        this.clients = []; this.quotes = []; this.receipts = [];
         try {
           localStorage.removeItem('orca_profile');
           localStorage.removeItem('orca_clients');
@@ -353,9 +352,7 @@
         const iconEl = document.getElementById('toast-icon');
         msgEl.textContent = message;
         iconEl.className = type === 'error' ? 'text-rose-400 text-lg' : 'text-emerald-400 text-lg';
-        iconEl.innerHTML = type === 'error'
-          ? '<i class="fa-solid fa-circle-exclamation"></i>'
-          : '<i class="fa-solid fa-circle-check"></i>';
+        iconEl.innerHTML = type === 'error' ? '<i class="fa-solid fa-circle-exclamation"></i>' : '<i class="fa-solid fa-circle-check"></i>';
         toast.classList.remove('translate-y-[-100px]', 'opacity-0');
         toast.classList.add('translate-y-0', 'opacity-100');
         setTimeout(() => {
@@ -409,7 +406,6 @@
                 </button>
               </div>
             </div>
-
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
               <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
                 <div class="flex items-center justify-between text-slate-500 mb-2"><span class="text-xs font-semibold uppercase tracking-wide">Aprovados</span><div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center"><i class="fa-solid fa-circle-check"></i></div></div>
@@ -422,12 +418,11 @@
               <div class="col-span-2 sm:col-span-1 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
                 <div class="flex items-center justify-between text-slate-500 mb-2"><span class="text-xs font-semibold uppercase tracking-wide">Uso do Plano</span><div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center"><i class="fa-solid fa-chart-simple"></i></div></div>
                 <div>
-                  <div class="flex items-center justify-between"><p class="text-xl sm:text-2xl font-black text-slate-900">${this.profile.plan === 'pro' ? 'Ilimitado' : this.quotes.length + '/5'}</p><span class="text-xs font-bold ${this.profile.plan === 'pro' ? 'text-amber-500' : 'text-slate-400'}">${this.profile.plan === 'pro' ? 'Pro' : 'Grátis'}</span></div>
-                  ${this.profile.plan !== 'pro' ? `<div class="w-full bg-slate-100 rounded-full h-2 mt-2 overflow-hidden"><div class="bg-emerald-500 h-2 rounded-full" style="width: ${Math.min(100, (this.quotes.length/5)*100)}%"></div></div>` : ''}
+                  <div class="flex items-center justify-between"><p class="text-xl sm:text-2xl font-black text-slate-900">${this.isPro() ? 'Ilimitado' : this.quotes.length + '/5'}</p><span class="text-xs font-bold ${this.isPro() ? 'text-amber-500' : 'text-slate-400'}">${this.isPro() ? 'Pro' : 'Grátis'}</span></div>
+                  ${!this.isPro() ? `<div class="w-full bg-slate-100 rounded-full h-2 mt-2 overflow-hidden"><div class="bg-emerald-500 h-2 rounded-full" style="width: ${Math.min(100, (this.quotes.length/5)*100)}%"></div></div>` : ''}
                 </div>
               </div>
             </div>
-
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
                 <h3 class="font-bold text-slate-900 flex items-center space-x-2"><i class="fa-solid fa-clock-rotate-left text-emerald-600"></i><span>Últimos Orçamentos</span></h3>
@@ -482,26 +477,20 @@
 
       // ---------- Editor de Orçamento ----------
       startNewQuote() {
-        if (this.profile.plan === 'free' && this.quotes.length >= 5) {
+        if (!this.isPro() && this.quotes.length >= 5) {
           this.openPaywall();
           return;
         }
         const nextNum = this.quotes.length > 0 ? Math.max(...this.quotes.map(q => q.number || 1000)) + 1 : 1001;
         this.activeQuote = {
-          id: this.generateId(),
-          number: nextNum,
+          id: this.generateId(), number: nextNum,
           clientName: this.clients[0]?.name || '',
           date: new Date().toISOString().split('T')[0],
-          validityDays: 7,
-          status: 'Rascunho',
+          validityDays: 7, status: 'Rascunho',
           items: [{ description: '', quantity: 1, unit: 'serviço', unitPrice: 0, subtotal: 0 }],
-          discountType: 'valor',
-          discountValue: 0,
-          extraFee: 0,
-          subtotal: 0,
-          total: 0,
-          paymentMethod: 'Pix ou Cartão',
-          timeframe: 'Imediato',
+          discountType: 'valor', discountValue: 0, extraFee: 0,
+          subtotal: 0, total: 0,
+          paymentMethod: 'Pix ou Cartão', timeframe: 'Imediato',
           notes: this.profile.footerTerms
         };
         this.navigate('editor');
@@ -517,10 +506,7 @@
         if (!Array.isArray(q.items) || q.items.length === 0) {
           q.items = [{ description: '', quantity: 1, unit: 'serviço', unitPrice: 0, subtotal: 0 }];
         }
-
-        const statusOptions = QUOTE_STATUSES.map(s =>
-          `<option value="${s}" ${q.status === s ? 'selected' : ''}>${s}</option>`
-        ).join('');
+        const statusOptions = QUOTE_STATUSES.map(s => `<option value="${s}" ${q.status === s ? 'selected' : ''}>${s}</option>`).join('');
 
         return `
           <div class="space-y-5 animate-fade-in pb-20">
@@ -529,30 +515,23 @@
               <h2 class="text-lg font-bold text-slate-900">Orçamento #${q.number}</h2>
               <button onclick="app.saveActiveQuote(true)" class="px-4 py-2 bg-slate-900 text-white font-bold rounded-xl text-xs">Salvar</button>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-2 md:col-span-2">
                 <label class="text-xs font-bold uppercase text-slate-500">Cliente</label>
                 <select id="editor-client" onchange="app.updateActiveQuoteClient(this.value)" class="w-full p-2 text-sm border rounded-lg">
                   <option value="">Selecione um cliente...</option>
-                  ${this.clients.map(c => {
-                    const selected = q.clientName === c.name ? 'selected' : '';
-                    return `<option value="${this.escapeHTML(c.name)}" ${selected}>${this.escapeHTML(c.name)}</option>`;
-                  }).join('')}
+                  ${this.clients.map(c => `<option value="${this.escapeHTML(c.name)}" ${q.clientName === c.name ? 'selected' : ''}>${this.escapeHTML(c.name)}</option>`).join('')}
                 </select>
               </div>
               <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
                 <label class="text-xs font-bold uppercase text-slate-500">Status</label>
-                <select id="editor-status" onchange="app.activeQuote.status = this.value" class="w-full p-2 text-sm border rounded-lg">
-                  ${statusOptions}
-                </select>
+                <select id="editor-status" onchange="app.activeQuote.status = this.value" class="w-full p-2 text-sm border rounded-lg">${statusOptions}</select>
               </div>
               <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-2">
                 <label class="text-xs font-bold uppercase text-slate-500">Data de Emissão</label>
                 <input type="date" value="${q.date}" onchange="app.activeQuote.date = this.value" class="w-full p-2 text-sm border rounded-lg">
               </div>
             </div>
-
             <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-4">
               <div class="flex justify-between items-center border-b pb-2">
                 <h3 class="font-bold text-sm text-slate-900">Itens / Serviços</h3>
@@ -567,24 +546,14 @@
                     </div>
                     <input type="text" placeholder="Descrição do serviço ou produto" value="${this.escapeHTML(item.description)}" oninput="app.updateItem(${idx}, 'description', this.value)" class="w-full p-2 text-sm bg-white border rounded-lg">
                     <div class="grid grid-cols-3 gap-2">
-                      <div>
-                        <label class="text-[10px] uppercase text-slate-400 font-bold">Qtd</label>
-                        <input type="number" step="any" min="0.01" value="${item.quantity}" oninput="app.updateItem(${idx}, 'quantity', this.value)" class="w-full p-1.5 text-sm bg-white border rounded-lg">
-                      </div>
-                      <div>
-                        <label class="text-[10px] uppercase text-slate-400 font-bold">Unidade</label>
-                        <input type="text" value="${this.escapeHTML(item.unit)}" oninput="app.updateItem(${idx}, 'unit', this.value)" class="w-full p-1.5 text-sm bg-white border rounded-lg">
-                      </div>
-                      <div>
-                        <label class="text-[10px] uppercase text-slate-400 font-bold">Val. Unitário (R$)</label>
-                        <input type="number" step="0.01" min="0" value="${item.unitPrice}" oninput="app.updateItem(${idx}, 'unitPrice', this.value)" class="w-full p-1.5 text-sm bg-white border rounded-lg">
-                      </div>
+                      <div><label class="text-[10px] uppercase text-slate-400 font-bold">Qtd</label><input type="number" step="any" min="0.01" value="${item.quantity}" oninput="app.updateItem(${idx}, 'quantity', this.value)" class="w-full p-1.5 text-sm bg-white border rounded-lg"></div>
+                      <div><label class="text-[10px] uppercase text-slate-400 font-bold">Unidade</label><input type="text" value="${this.escapeHTML(item.unit)}" oninput="app.updateItem(${idx}, 'unit', this.value)" class="w-full p-1.5 text-sm bg-white border rounded-lg"></div>
+                      <div><label class="text-[10px] uppercase text-slate-400 font-bold">Val. Unitário (R$)</label><input type="number" step="0.01" min="0" value="${item.unitPrice}" oninput="app.updateItem(${idx}, 'unitPrice', this.value)" class="w-full p-1.5 text-sm bg-white border rounded-lg"></div>
                     </div>
                   </div>
                 `).join('')}
               </div>
             </div>
-
             <div class="bg-slate-900 text-white p-5 rounded-xl space-y-3">
               <div class="flex justify-between text-sm"><span>Subtotal:</span><span id="editor-subtotal-val" class="font-bold">${this.formatCurrency(q.subtotal)}</span></div>
               <div class="flex justify-between text-sm items-center">
@@ -593,12 +562,10 @@
               </div>
               <div class="flex justify-between text-lg border-t border-slate-700 pt-2 font-black text-emerald-400"><span>Total Final:</span><span id="editor-total-val">${this.formatCurrency(q.total)}</span></div>
             </div>
-
             <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-3">
               <label class="text-xs font-bold uppercase text-slate-500">Condições e Observações</label>
               <textarea rows="3" oninput="app.activeQuote.notes = this.value" class="w-full p-2 text-sm border rounded-lg">${this.escapeHTML(q.notes || '')}</textarea>
             </div>
-
             <div class="sticky bottom-16 bg-white p-3 rounded-2xl border shadow-xl flex justify-end space-x-2">
               <button onclick="app.previewPDFFromEditor()" class="px-5 py-2.5 bg-emerald-600 text-white font-bold rounded-xl text-xs flex items-center space-x-2"><i class="fa-solid fa-file-pdf"></i><span>Gerar PDF / Imprimir</span></button>
             </div>
@@ -629,9 +596,7 @@
         if (field === 'quantity' || field === 'unitPrice') {
           item[field] = parseFloat(val) || 0;
           item.subtotal = (item.quantity || 0) * (item.unitPrice || 0);
-        } else {
-          item[field] = val;
-        }
+        } else { item[field] = val; }
         this.recalculateQuoteTotals();
       }
 
@@ -661,35 +626,27 @@
       async saveActiveQuote(notify = false) {
         if (!this.activeQuote) return false;
         this.recalculateQuoteTotals();
-
         const exists = this.quotes.some(q => q.id === this.activeQuote.id);
-        if (this.profile.plan === 'free' && !exists && this.quotes.length >= 5) {
+        if (!this.isPro() && !exists && this.quotes.length >= 5) {
           this.openPaywall();
           return false;
         }
-
         const index = this.quotes.findIndex(q => q.id === this.activeQuote.id);
         if (index >= 0) this.quotes[index] = { ...this.activeQuote };
         else this.quotes.unshift({ ...this.activeQuote });
 
         if (this.user) {
           const payload = {
-            id: this.activeQuote.id,
-            user_id: this.user.id,
-            number: this.activeQuote.number,
-            client_name: this.activeQuote.clientName,
-            date: this.activeQuote.date,
-            validity_days: this.activeQuote.validityDays,
-            status: this.activeQuote.status,
-            items: this.activeQuote.items,
+            id: this.activeQuote.id, user_id: this.user.id,
+            number: this.activeQuote.number, client_name: this.activeQuote.clientName,
+            date: this.activeQuote.date, validity_days: this.activeQuote.validityDays,
+            status: this.activeQuote.status, items: this.activeQuote.items,
             discount_type: this.activeQuote.discountType,
             discount_value: this.activeQuote.discountValue,
             extra_fee: this.activeQuote.extraFee,
-            subtotal: this.activeQuote.subtotal,
-            total: this.activeQuote.total,
+            subtotal: this.activeQuote.subtotal, total: this.activeQuote.total,
             payment_method: this.activeQuote.paymentMethod,
-            timeframe: this.activeQuote.timeframe,
-            notes: this.activeQuote.notes
+            timeframe: this.activeQuote.timeframe, notes: this.activeQuote.notes
           };
           const { error } = await supabaseClient.from('quotes').upsert(payload, { onConflict: 'id' });
           if (error) {
@@ -697,7 +654,6 @@
             this.showToast('Falha ao sincronizar. Dados salvos localmente.', 'error');
           }
         }
-
         await this.saveState();
         if (notify) this.showToast('Orçamento salvo com sucesso!');
         return true;
@@ -722,6 +678,7 @@
       }
 
       previewPDF(id) {
+        if (!this.isPro()) { this.openPaywall(); return; }
         const q = this.quotes.find(item => item.id === id);
         if (!q) { this.showToast('Orçamento não encontrado.', 'error'); return; }
         const modal = document.getElementById('modal-container');
@@ -808,6 +765,7 @@
       }
 
       startNewReceipt() {
+        if (!this.isPro()) { this.openPaywall(); return; }
         const modal = document.getElementById('modal-container');
         document.getElementById('modal-content').innerHTML = `
           <div class="p-6 space-y-4">
@@ -828,32 +786,24 @@
 
       async saveReceipt(e) {
         e.preventDefault();
+        if (!this.isPro()) { this.openPaywall(); return; }
         const nextNum = this.receipts.length > 0 ? Math.max(...this.receipts.map(r => r.number || 100)) + 1 : 101;
         const newR = {
-          id: this.generateId(),
-          number: nextNum,
+          id: this.generateId(), number: nextNum,
           payerName: document.getElementById('rcpt-payer').value.trim(),
           receiverName: this.profile.tradeName || this.profile.name || '',
           date: document.getElementById('rcpt-date').value,
           amount: parseFloat(document.getElementById('rcpt-amount').value) || 0,
           description: document.getElementById('rcpt-desc').value.trim(),
-          paymentMethod: 'Pix',
-          notes: ''
+          paymentMethod: 'Pix', notes: ''
         };
         this.receipts.unshift(newR);
-
         if (this.user) {
           const { error } = await supabaseClient.from('receipts').insert([{
-            id: newR.id,
-            user_id: this.user.id,
-            number: newR.number,
-            payer_name: newR.payerName,
-            receiver_name: newR.receiverName,
-            date: newR.date,
-            amount: newR.amount,
-            description: newR.description,
-            payment_method: newR.paymentMethod,
-            notes: newR.notes
+            id: newR.id, user_id: this.user.id, number: newR.number,
+            payer_name: newR.payerName, receiver_name: newR.receiverName,
+            date: newR.date, amount: newR.amount, description: newR.description,
+            payment_method: newR.paymentMethod, notes: newR.notes
           }]);
           if (error) {
             console.error('Erro ao salvar recibo:', error);
@@ -879,6 +829,7 @@
       }
 
       previewReceiptPDF(id) {
+        if (!this.isPro()) { this.openPaywall(); return; }
         const r = this.receipts.find(item => item.id === id);
         if (!r) { this.showToast('Recibo não encontrado.', 'error'); return; }
         const modal = document.getElementById('modal-container');
@@ -929,6 +880,7 @@
       }
 
       openClientModal() {
+        if (!this.isPro() && this.clients.length >= 3) { this.openPaywall(); return; }
         const modal = document.getElementById('modal-container');
         document.getElementById('modal-content').innerHTML = `
           <div class="p-6 space-y-4">
@@ -949,6 +901,7 @@
 
       async saveClient(e) {
         e.preventDefault();
+        if (!this.isPro() && this.clients.length >= 3) { this.openPaywall(); return; }
         const newC = {
           id: this.generateId(),
           name: document.getElementById('cli-name').value.trim(),
@@ -959,8 +912,8 @@
         this.clients.push(newC);
         if (this.user) {
           const { error } = await supabaseClient.from('clients').insert([{
-            id: newC.id, user_id: this.user.id,
-            name: newC.name, phone: newC.phone, email: newC.email, address: newC.address
+            id: newC.id, user_id: this.user.id, name: newC.name,
+            phone: newC.phone, email: newC.email, address: newC.address
           }]);
           if (error) {
             console.error('Erro ao salvar cliente:', error);
@@ -1004,6 +957,15 @@
               <div><label class="text-xs font-bold uppercase text-slate-500">Termos e Condições Padrão de Rodapé</label><textarea id="set-terms" rows="2" class="w-full p-2 border rounded-lg text-sm">${this.escapeHTML(p.footerTerms)}</textarea></div>
               <div class="flex justify-end pt-2"><button type="submit" class="px-5 py-2.5 bg-emerald-600 text-white font-bold rounded-xl text-xs">Salvar Configurações</button></div>
             </form>
+            ${this.subscription ? `
+              <div class="bg-white p-5 rounded-xl border border-slate-200 space-y-2">
+                <h3 class="font-bold text-slate-900 text-sm">Sua Assinatura</h3>
+                <p class="text-xs text-slate-600">Plano: <strong>${this.subscription.plan_type === 'anual' ? 'Anual' : 'Mensal'}</strong></p>
+                <p class="text-xs text-slate-600">Status: <strong>${this.subscription.status === 'active' ? 'Ativo' : this.subscription.status}</strong></p>
+                <p class="text-xs text-slate-600">Válido até: <strong>${this.formatDate(this.subscription.end_date?.split('T')[0])}</strong></p>
+                ${this.subscription.isActive && this.subscription.daysRemaining <= 7 ? `<p class="text-xs text-amber-600 font-bold">⚠️ Sua assinatura expira em ${this.subscription.daysRemaining} dia(s). Renove agora!</p>` : ''}
+              </div>
+            ` : ''}
           </div>
         `;
       }
@@ -1091,7 +1053,7 @@
                   <p class="text-xl font-black text-white">R$ 119,00 <span class="text-xs font-normal text-emerald-100">/ano</span></p>
                   <p class="text-[10px] text-emerald-100 mt-1">Pagamento único anual.</p>
                 </div>
-                <a href="https://cerefy.com.br/checkout/c9d342ca-5bb0-454e-b861-eb36dbefa9e8" target="_blank" rel="noopener" class="w-full py-2.5 bg-white text-slate-900 font-extrabold rounded-xl text-xs shadow text-center block">Assinar Anual</a>
+                <a href="https://cerefy.com.br/checkout/c9d342ca-5bb0-454e-b861-eb36dbefa9e8?user_id=${this.user?.id || ''}" target="_blank" rel="noopener" class="w-full py-2.5 bg-white text-slate-900 font-extrabold rounded-xl text-xs shadow text-center block">Assinar Anual</a>
               </div>
               <div class="p-4 bg-slate-800 rounded-xl space-y-3 border border-slate-700 shadow-md flex flex-col justify-between">
                 <div>
@@ -1100,7 +1062,7 @@
                   <p class="text-xl font-black text-white">R$ 14,90 <span class="text-xs font-normal text-slate-400">/mês</span></p>
                   <p class="text-[10px] text-slate-400 mt-1">Cancele quando quiser.</p>
                 </div>
-                <a href="https://cerefy.com.br/checkout/442c9856-0ce9-474e-bb2f-260c93534c40" target="_blank" rel="noopener" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold rounded-xl text-xs shadow text-center block">Assinar Mensal</a>
+                <a href="https://cerefy.com.br/checkout/442c9856-0ce9-474e-bb2f-260c93534c40?user_id=${this.user?.id || ''}" target="_blank" rel="noopener" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold rounded-xl text-xs shadow text-center block">Assinar Mensal</a>
               </div>
             </div>
           </div>
