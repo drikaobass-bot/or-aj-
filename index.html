@@ -134,7 +134,7 @@
   <script>
     const SUPABASE_URL = 'https://ecxgdndfyazyyhhctlgc.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_bqcC7xQtqTxSe_GSMBxoYA_a_EIk8qK';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   </script>
 
   <script>
@@ -151,7 +151,6 @@
       footerTerms: 'Orçamento válido por 7 dias. Pagamento em até 3x no cartão sem juros ou 5% de desconto no Pix.',
       profession: 'Eletricista',
       plan: 'free',
-      quotesCreatedThisMonth: 0,
       nextQuoteNumber: 1001,
       nextReceiptNumber: 101
     };
@@ -483,9 +482,9 @@
     }
 
     let app;
-    window.onload = function() {
+    window.onload = async function() {
       app = new OrçaJaApp();
-      app.init();
+      await app.init();
     };
   </script>
 </body>
