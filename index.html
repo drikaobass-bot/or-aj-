@@ -33,7 +33,7 @@
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #f1f5f9; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-    .a4-page { min-height: 297mm; width: 100%; max-width: 210mm; margin: 0 auto; background: white; }
+    .a4-page { min-height: 297mm; width: 100%; max-width: 210mm; margin: 0 auto; background: white; page-break-after: always; }
 
     @media print {
       html, body { background: white !important; margin: 0 !important; padding: 0 !important; height: auto !important; overflow: visible !important; }
@@ -98,8 +98,9 @@
     </div>
   </div>
 
-  <div id="modal-container" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-    <div id="modal-content" class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transform transition-all"></div>
+  <!-- Modal com suporte a fechamento ao clicar fora -->
+  <div id="modal-container" onclick="app.handleModalBackdropClick(event)" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div id="modal-content" onclick="event.stopPropagation()" class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transform transition-all"></div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -168,7 +169,6 @@
         }[tag] || tag));
       }
 
-      // =============== ESTADO DE ACESSO ===============
       isPro() {
         return !!(this.accessInfo && (this.accessInfo.is_pro || this.accessInfo.is_admin));
       }
@@ -245,7 +245,6 @@
           const { data, error } = await supabaseClient.rpc('check_access');
           if (error) {
             console.error('Erro ao verificar acesso:', error);
-            // NÃO zera — mantém o último estado válido para não travar o usuário
             if (!this.accessInfo) this.accessInfo = { ...EMPTY_ACCESS };
             return;
           }
@@ -311,16 +310,12 @@
       async loadUserDataFromSupabase() {
         if (!this.user) return;
         try {
-          // ===== Perfil =====
           let { data: profileData, error: profErr } = await supabaseClient
             .from('profiles').select('*').eq('id', this.user.id).maybeSingle();
 
-          if (profErr) {
-            console.error('Erro ao buscar perfil:', profErr);
-          }
+          if (profErr) console.error('Erro ao buscar perfil:', profErr);
 
           if (!profileData) {
-            // Tenta criar o perfil
             const newProf = {
               id: this.user.id,
               email: this.user.email,
@@ -329,11 +324,7 @@
               pix_key: '', footer_terms: DEFAULT_PROFILE.footerTerms
             };
             const { error: insErr } = await supabaseClient.from('profiles').upsert([newProf], { onConflict: 'id' });
-            if (insErr) {
-              console.error('Erro ao criar perfil:', insErr);
-            } else {
-              profileData = newProf;
-            }
+            if (!insErr) profileData = newProf;
           }
 
           if (profileData) {
@@ -352,19 +343,15 @@
             this.profile = { ...DEFAULT_PROFILE, email: this.user.email || '' };
           }
 
-          // ===== Clientes =====
-          const { data: clientsData, error: cliErr } = await supabaseClient
+          const { data: clientsData } = await supabaseClient
             .from('clients').select('*').eq('user_id', this.user.id).order('name', { ascending: true });
-          if (cliErr) console.error('Erro ao carregar clientes:', cliErr);
           this.clients = (clientsData || []).map(c => ({
             id: c.id, name: c.name || '', phone: c.phone || '',
             email: c.email || '', address: c.address || ''
           }));
 
-          // ===== Orçamentos =====
-          const { data: quotesData, error: qErr } = await supabaseClient
+          const { data: quotesData } = await supabaseClient
             .from('quotes').select('*').eq('user_id', this.user.id).order('number', { ascending: false });
-          if (qErr) console.error('Erro ao carregar orçamentos:', qErr);
           this.quotes = (quotesData || []).map(q => ({
             id: q.id, number: q.number, clientName: q.client_name || '',
             date: q.date, validityDays: q.validity_days || 7,
@@ -380,10 +367,8 @@
             notes: q.notes || ''
           }));
 
-          // ===== Recibos =====
-          const { data: receiptsData, error: rErr } = await supabaseClient
+          const { data: receiptsData } = await supabaseClient
             .from('receipts').select('*').eq('user_id', this.user.id).order('number', { ascending: false });
-          if (rErr) console.error('Erro ao carregar recibos:', rErr);
           this.receipts = (receiptsData || []).map(r => ({
             id: r.id, number: r.number, payerName: r.payer_name || '',
             receiverName: r.receiver_name || '', date: r.date,
@@ -416,8 +401,7 @@
             pix_key: this.profile.pixKey || '',
             footer_terms: this.profile.footerTerms || ''
           };
-          const { error } = await supabaseClient.from('profiles')
-            .update(payload).eq('id', this.user.id);
+          const { error } = await supabaseClient.from('profiles').update(payload).eq('id', this.user.id);
           if (error) console.error('Erro ao salvar perfil:', error);
         }
         this.updateHeaderBadge();
@@ -486,6 +470,12 @@
           toast.classList.add('translate-y-[-100px]', 'opacity-0');
           toast.classList.remove('translate-y-0', 'opacity-100');
         }, 3500);
+      }
+
+      handleModalBackdropClick(e) {
+        if (e.target && e.target.id === 'modal-container') {
+          this.closeModal();
+        }
       }
 
       navigate(tab, params = {}) {
@@ -626,7 +616,6 @@
           try {
             const { data, error } = await supabaseClient.rpc('consume_free_trial');
             if (error) {
-              console.error('Erro consume_free_trial:', error);
               this.showToast('Erro ao liberar orçamento. Tente novamente.', 'error');
               return;
             }
@@ -640,7 +629,6 @@
               this.openPaywall();
             }
           } catch (e) {
-            console.error(e);
             this.showToast('Erro de conexão. Tente novamente.', 'error');
           }
           return;
@@ -682,7 +670,7 @@
             <div class="flex items-center justify-between border-b border-slate-200 pb-3">
               <button onclick="app.navigate('quotes')" class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600"><i class="fa-solid fa-arrow-left text-xs"></i></button>
               <h2 class="text-lg font-bold text-slate-900">Orçamento #${q.number}</h2>
-              <button onclick="app.saveActiveQuote(true)" class="px-4 py-2 bg-slate-900 text-white font-bold rounded-xl text-xs">Salvar</button>
+              <button onclick="app.saveActiveQuote(true, true)" class="px-4 py-2 bg-slate-900 text-white font-bold rounded-xl text-xs hover:bg-slate-800 transition-all">Salvar</button>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-2 md:col-span-2">
@@ -710,8 +698,7 @@
                 ${q.items.map((item, idx) => `
                   <div class="p-3 bg-slate-50 border rounded-xl space-y-2 relative">
                     <div class="flex justify-between items-center">
-                      <span class="text-xs font-bold text-slate-500">Item #${idx + 1}</span>
-                      ${q.items.length > 1 ? `<button onclick="app.removeQuoteItem(${idx})" class="text-rose-500 text-xs font-bold"><i class="fa-solid fa-trash"></i></button>` : ''}
+                      <span class="text-xs font-bold text-slate-500">Item #${idx + 1}</span>${q.items.length > 1 ? `<button onclick="app.removeQuoteItem(${idx})" class="text-rose-500 text-xs font-bold"><i class="fa-solid fa-trash"></i></button>` : ''}
                     </div>
                     <input type="text" placeholder="Descrição do serviço ou produto" value="${this.escapeHTML(item.description)}" oninput="app.updateItem(${idx}, 'description', this.value)" class="w-full p-2 text-sm bg-white border rounded-lg">
                     <div class="grid grid-cols-3 gap-2">
@@ -763,15 +750,17 @@
         const item = this.activeQuote.items[idx];
         if (!item) return;
         if (field === 'quantity' || field === 'unitPrice') {
-          item[field] = parseFloat(val) || 0;
+          item[field] = val === '' ? 0 : (parseFloat(val) || 0);
           item.subtotal = (item.quantity || 0) * (item.unitPrice || 0);
-        } else { item[field] = val; }
+        } else {
+          item[field] = val;
+        }
         this.recalculateQuoteTotals();
       }
 
       updateDiscount(val) {
         if (!this.activeQuote) return;
-        this.activeQuote.discountValue = Math.max(0, parseFloat(val) || 0);
+        this.activeQuote.discountValue = val === '' ? 0 : Math.max(0, parseFloat(val) || 0);
         this.recalculateQuoteTotals();
       }
 
@@ -792,10 +781,18 @@
         if (totEl) totEl.textContent = this.formatCurrency(this.activeQuote.total);
       }
 
-      async saveActiveQuote(notify = false) {
+      async saveActiveQuote(notify = false, redirectToList = false) {
         if (!this.activeQuote) return false;
         if (!this.requireFullAccess('salvar orçamentos')) return false;
+
         this.recalculateQuoteTotals();
+
+        // Validação básica de itens
+        const hasValidItem = this.activeQuote.items.some(i => i.description.trim() !== '' && i.subtotal > 0);
+        if (!hasValidItem) {
+          this.showToast('Adicione pelo menos um item válido com descrição e valor.', 'error');
+          return false;
+        }
 
         const index = this.quotes.findIndex(q => q.id === this.activeQuote.id);
         if (index >= 0) this.quotes[index] = { ...this.activeQuote };
@@ -813,14 +810,17 @@
           payment_method: this.activeQuote.paymentMethod,
           timeframe: this.activeQuote.timeframe, notes: this.activeQuote.notes
         };
+
         const { error } = await supabaseClient.from('quotes').upsert(payload, { onConflict: 'id' });
         if (error) {
           console.error('Erro ao salvar orçamento no Supabase:', error);
           this.showToast('Falha ao sincronizar. Tente novamente.', 'error');
           return false;
         }
+
         await this.saveState();
         if (notify) this.showToast('Orçamento salvo com sucesso!');
+        if (redirectToList) this.navigate('quotes');
         return true;
       }
 
@@ -829,14 +829,14 @@
         if (!confirm('Deseja realmente excluir este orçamento?')) return;
         this.quotes = this.quotes.filter(q => q.id !== id);
         const { error } = await supabaseClient.from('quotes').delete().eq('id', id);
-        if (error) { console.error(error); this.showToast('Erro ao excluir.', 'error'); return; }
+        if (error) { this.showToast('Erro ao excluir.', 'error'); return; }
         await this.saveState();
         this.showToast('Orçamento excluído.');
         this.navigate('quotes');
       }
 
       async previewPDFFromEditor() {
-        const ok = await this.saveActiveQuote(false);
+        const ok = await this.saveActiveQuote(false, false);
         if (!ok) return;
         this.previewPDF(this.activeQuote.id);
       }
@@ -913,8 +913,8 @@
                 return `
                 <div class="p-4 hover:bg-slate-50 transition-colors flex justify-between items-center">
                   <div>
-                    <h4 class="font-bold text-slate-900 text-sm">Recibo #${r.number} - ${this.escapeHTML(r.payerName)}</h4>
-                    <p class="text-xs text-slate-500">${this.formatDate(r.date)} • ${this.formatCurrency(r.amount)}</p>
+                    <h4 class="font-bold text-slate-900 text-sm">Recibo #${r.number} -${this.escapeHTML(r.payerName)}</h4>
+                    <p class="text-xs text-slate-500">${this.formatDate(r.date)} •${this.formatCurrency(r.amount)}</p>
                   </div>
                   <div class="flex space-x-1">
                     <button onclick="app.previewReceiptPDF('${safeId}')" class="p-2 text-slate-500 hover:text-rose-600 rounded-lg"><i class="fa-solid fa-file-pdf"></i></button>
@@ -968,7 +968,6 @@
           payment_method: newR.paymentMethod, notes: newR.notes
         }]);
         if (error) {
-          console.error('Erro ao salvar recibo:', error);
           this.showToast('Falha ao salvar recibo.', 'error');
           return;
         }
@@ -983,7 +982,7 @@
         if (!confirm('Deseja excluir este recibo?')) return;
         this.receipts = this.receipts.filter(r => r.id !== id);
         const { error } = await supabaseClient.from('receipts').delete().eq('id', id);
-        if (error) { console.error(error); this.showToast('Erro ao excluir.', 'error'); return; }
+        if (error) { this.showToast('Erro ao excluir.', 'error'); return; }
         await this.saveState();
         this.showToast('Recibo excluído.');
         this.navigate('receipts');
@@ -1027,7 +1026,7 @@
                 <div class="p-4 hover:bg-slate-50 transition-colors flex justify-between items-center">
                   <div>
                     <h4 class="font-bold text-slate-900 text-sm">${this.escapeHTML(c.name)}</h4>
-                    <p class="text-xs text-slate-500">Tel: ${this.escapeHTML(c.phone || 'N/I')} • E-mail: ${this.escapeHTML(c.email || 'N/I')}</p>
+                    <p class="text-xs text-slate-500">Tel: ${this.escapeHTML(c.phone \vert{}\vert{} 'N/I')} • E-mail: ${this.escapeHTML(c.email || 'N/I')}</p>
                   </div>
                   <div class="flex space-x-1">
                     <button onclick="app.deleteClient('${this.escapeHTML(c.id)}')" class="p-2 text-slate-500 hover:text-rose-600 rounded-lg"><i class="fa-solid fa-trash"></i></button>
@@ -1075,7 +1074,6 @@
           phone: newC.phone, email: newC.email, address: newC.address
         }]);
         if (error) {
-          console.error('Erro ao salvar cliente:', error);
           this.showToast('Falha ao salvar cliente.', 'error');
           return;
         }
@@ -1090,7 +1088,7 @@
         if (!confirm('Deseja excluir este cliente?')) return;
         this.clients = this.clients.filter(c => c.id !== id);
         const { error } = await supabaseClient.from('clients').delete().eq('id', id);
-        if (error) { console.error(error); this.showToast('Erro ao excluir.', 'error'); return; }
+        if (error) { this.showToast('Erro ao excluir.', 'error'); return; }
         await this.saveState();
         this.showToast('Cliente excluído.');
         this.navigate('clients');
@@ -1119,8 +1117,7 @@
                 <h3 class="font-bold text-slate-900 text-sm">Sua Assinatura</h3>
                 <p class="text-xs text-slate-600">Plano: <strong>${this.subscription.plan_type === 'yearly' ? 'Anual' : 'Mensal'}</strong></p>
                 <p class="text-xs text-slate-600">Status: <strong>${this.subscription.status === 'active' ? 'Ativo' : this.subscription.status}</strong></p>
-                <p class="text-xs text-slate-600">Válido até: <strong>${this.formatDate(this.subscription.end_date?.split('T')[0])}</strong></p>
-                ${this.subscription.isActive && this.subscription.daysRemaining <= 7 ? `<p class="text-xs text-amber-600 font-bold">⚠️ Sua assinatura expira em ${this.subscription.daysRemaining} dia(s). Renove agora!</p>` : ''}
+                <p class="text-xs text-slate-600">Válido até: <strong>${this.formatDate(this.subscription.end_date?.split('T')[0])}</strong></p>${this.subscription.isActive && this.subscription.daysRemaining <= 7 ? `<p class="text-xs text-amber-600 font-bold">⚠️ Sua assinatura expira em ${this.subscription.daysRemaining} dia(s). Renove agora!</p>` : ''}
               </div>
             ` : ''}
           </div>
