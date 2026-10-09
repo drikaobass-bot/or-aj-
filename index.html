@@ -4,30 +4,37 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Orça Já - Gerador de Orçamentos e Recibos</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
   <script>
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
           colors: {
-            brand: { 50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e', 600: '#16a34a', 700: '#15803d', 800: '#166534' }
+            brand: {
+              50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e', 600: '#16a34a',
+              700: '#15803d', 800: '#166534',
+            }
           },
           fontFamily: { sans: ['Inter', 'sans-serif'] }
         }
       }
     }
   </script>
+
   <style>
     body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #f1f5f9; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     .a4-page { min-height: 297mm; width: 100%; max-width: 210mm; margin: 0 auto; background: white; }
+
     @media print {
       html, body { background: white !important; margin: 0 !important; padding: 0 !important; height: auto !important; overflow: visible !important; }
       #app, #toast, .no-print, header, nav, button:not(#printable-document button) { display: none !important; }
@@ -38,7 +45,9 @@
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen pb-20 md:pb-6">
+
   <div id="app" class="max-w-4xl mx-auto min-h-screen flex flex-col bg-white shadow-xl md:my-4 md:rounded-2xl overflow-hidden border border-slate-200">
+
     <header class="bg-slate-900 text-white px-4 py-3 sticky top-0 z-30 flex items-center justify-between border-b border-slate-800 shadow-sm">
       <div class="flex items-center space-x-3">
         <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-green-400 flex items-center justify-center font-bold text-slate-900 shadow-md">
@@ -57,31 +66,49 @@
         <button onclick="app.openAuthModal()" id="auth-btn" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-all">Entrar</button>
       </div>
     </header>
+
     <main id="main-content" class="flex-1 p-4 md:p-6 overflow-y-auto"></main>
+
     <nav class="fixed bottom-0 left-0 right-0 max-w-4xl mx-auto bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 px-2 py-1.5 flex justify-around items-center md:sticky md:border-t-0 md:bg-transparent">
-      <button onclick="app.navigate('dashboard')" id="nav-dashboard" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors"><i class="fa-solid fa-chart-pie text-lg mb-0.5"></i><span>Início</span></button>
-      <button onclick="app.navigate('quotes')" id="nav-quotes" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors"><i class="fa-solid fa-file-invoice text-lg mb-0.5"></i><span>Orçamentos</span></button>
-      <button onclick="app.startNewQuote()" class="w-12 h-12 -mt-5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 active:scale-95 transition-all"><i class="fa-solid fa-plus text-xl"></i></button>
-      <button onclick="app.navigate('receipts')" id="nav-receipts" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors"><i class="fa-solid fa-receipt text-lg mb-0.5"></i><span>Recibos</span></button>
-      <button onclick="app.navigate('clients')" id="nav-clients" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors"><i class="fa-solid fa-users text-lg mb-0.5"></i><span>Clientes</span></button>
-      <button onclick="app.navigate('settings')" id="nav-settings" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors"><i class="fa-solid fa-gear text-lg mb-0.5"></i><span>Ajustes</span></button>
+      <button onclick="app.navigate('dashboard')" id="nav-dashboard" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors">
+        <i class="fa-solid fa-chart-pie text-lg mb-0.5"></i><span>Início</span>
+      </button>
+      <button onclick="app.navigate('quotes')" id="nav-quotes" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors">
+        <i class="fa-solid fa-file-invoice text-lg mb-0.5"></i><span>Orçamentos</span>
+      </button>
+      <button onclick="app.startNewQuote()" class="w-12 h-12 -mt-5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 active:scale-95 transition-all">
+        <i class="fa-solid fa-plus text-xl"></i>
+      </button>
+      <button onclick="app.navigate('receipts')" id="nav-receipts" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors">
+        <i class="fa-solid fa-receipt text-lg mb-0.5"></i><span>Recibos</span>
+      </button>
+      <button onclick="app.navigate('clients')" id="nav-clients" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors">
+        <i class="fa-solid fa-users text-lg mb-0.5"></i><span>Clientes</span>
+      </button>
+      <button onclick="app.navigate('settings')" id="nav-settings" class="nav-btn flex flex-col items-center py-1 px-3 rounded-lg text-xs font-medium text-slate-500 transition-colors">
+        <i class="fa-solid fa-gear text-lg mb-0.5"></i><span>Ajustes</span>
+      </button>
     </nav>
   </div>
+
   <div id="toast" class="fixed top-16 right-4 z-50 transform translate-y-[-100px] opacity-0 transition-all duration-300 pointer-events-none">
     <div class="bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3 border border-slate-700 max-w-sm">
       <div id="toast-icon" class="text-emerald-400 text-lg"><i class="fa-solid fa-circle-check"></i></div>
       <p id="toast-message" class="text-sm font-medium">Operação realizada!</p>
     </div>
   </div>
+
   <div id="modal-container" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
     <div id="modal-content" class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transform transition-all"></div>
   </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const SUPABASE_URL = 'https://ecxgdndfyazyyhhctlgc.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_bqcC7xQtqTxSe_GSMBxoYA_a_EIk8qK';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjeGdkbmRmeWF6eXloaGN0bGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1NTA1NjUsImV4cCI6MjEwNzEyNjU2NX0.Heypx90Tvayc1c6-Y0T_YiBXNZvs1-BOEFxPF_YBNnM';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   </script>
+
   <script>
     const DEFAULT_PROFILE = {
       name: '', tradeName: '', document: '', phone: '', email: '',
@@ -89,8 +116,9 @@
       footerTerms: 'Orçamento válido por 7 dias. Pagamento em até 3x no cartão sem juros ou 5% de desconto no Pix.',
       plan: 'free'
     };
+
     const QUOTE_STATUSES = ['Rascunho', 'Enviado', 'Aprovado', 'Recusado'];
-    const SUBSCRIPTION_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutos
+    const SUBSCRIPTION_CHECK_INTERVAL = 5 * 60 * 1000;
 
     class OrçaJaApp {
       constructor() {
@@ -131,7 +159,6 @@
         }[tag] || tag));
       }
 
-      // ---------- Inicialização ----------
       async init() {
         try {
           const { data: { session } } = await supabaseClient.auth.getSession();
@@ -384,7 +411,6 @@
         }
       }
 
-      // ---------- Dashboard ----------
       renderDashboard() {
         const approvedValue = this.quotes.filter(q => q.status === 'Aprovado').reduce((s, q) => s + q.total, 0);
         const totalSent = this.quotes.filter(q => q.status === 'Enviado' || q.status === 'Aprovado').length;
@@ -475,7 +501,6 @@
         `;
       }
 
-      // ---------- Editor de Orçamento ----------
       startNewQuote() {
         if (!this.isPro() && this.quotes.length >= 5) {
           this.openPaywall();
@@ -739,7 +764,6 @@
         modal.classList.remove('hidden');
       }
 
-      // ---------- Recibos ----------
       renderReceiptsList() {
         return `
           <div class="space-y-4 animate-fade-in">
@@ -857,7 +881,6 @@
         modal.classList.remove('hidden');
       }
 
-      // ---------- Clientes ----------
       renderClientsList() {
         return `
           <div class="space-y-4 animate-fade-in">
@@ -938,7 +961,6 @@
         this.navigate('clients');
       }
 
-      // ---------- Ajustes ----------
       renderSettings() {
         const p = this.profile;
         return `
@@ -984,7 +1006,6 @@
         this.showToast('Configurações salvas com sucesso!');
       }
 
-      // ---------- Auth / Paywall ----------
       openAuthModal() {
         const modal = document.getElementById('modal-container');
         document.getElementById('modal-content').innerHTML = `
