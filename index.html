@@ -123,7 +123,7 @@
       constructor() {
         this.user = null;
         this.profile = { ...DEFAULT_PROFILE };
-        this.accessInfo = null;      // Estado de acesso vindo do servidor
+        this.accessInfo = null;
         this.subscription = null;
         this.clients = [];
         this.quotes = [];
@@ -160,17 +160,37 @@
       }
 
       // =============== ESTADO DE ACESSO (servidor) ===============
+      // isPro: tem assinatura ativa OU é admin. NÃO conta teste grátis.
       isPro() {
         return !!(this.accessInfo && (this.accessInfo.is_pro || this.accessInfo.is_admin));
       }
       isAdmin() {
         return !!(this.accessInfo && this.accessInfo.is_admin);
       }
+      // hasFullAccess: Pro, Admin OU ainda tem direito ao teste grátis.
+      // Este é o "guarda-chuva" que libera TODAS as funções durante o teste.
+      hasFullAccess() {
+        if (this.isPro()) return true;
+        return !!(this.accessInfo && this.accessInfo.has_free_trial === true);
+      }
       canCreateQuote() {
         return !!(this.accessInfo && this.accessInfo.can_create_quote);
       }
 
-      // ========================================================
+      // Guarda único: bloqueia tudo quando não há acesso.
+      requireFullAccess(actionLabel = 'esta função') {
+        if (!this.user) {
+          this.showToast('Entre com sua conta para continuar.', 'error');
+          this.openAuthModal();
+          return false;
+        }
+        if (!this.hasFullAccess()) {
+          this.showToast('Assine o plano Pro para ' + actionLabel + '.', 'error');
+          this.openPaywall();
+          return false;
+        }
+        return true;
+      }
 
       async init() {
         try {
@@ -182,7 +202,7 @@
             await this.loadSubscription();
           } else {
             this.loadLocalFallback();
-            this.accessInfo = { access: false, is_pro: false, is_admin: false, can_create_quote: false };
+            this.accessInfo = { access: false, is_pro: false, is_admin: false, can_create_quote: false, has_free_trial: false };
           }
           this.updateHeaderBadge();
           this.navigate('dashboard');
@@ -190,7 +210,7 @@
         } catch (e) {
           console.error('Erro na inicialização:', e);
           this.loadLocalFallback();
-          this.accessInfo = { access: false, is_pro: false, is_admin: false, can_create_quote: false };
+          this.accessInfo = { access: false, is_pro: false, is_admin: false, can_create_quote: false, has_free_trial: false };
           this.updateHeaderBadge();
           this.navigate('dashboard');
         }
@@ -216,20 +236,20 @@
 
       async loadAccessStatus() {
         if (!this.user) {
-          this.accessInfo = { access: false, is_pro: false, is_admin: false, can_create_quote: false };
+          this.accessInfo = { access: false, is_pro: false, is_admin: false, can_create_quote: false, has_free_trial: false };
           return;
         }
         try {
           const { data, error } = await supabaseClient.rpc('check_access');
           if (error) {
             console.error('Erro ao verificar acesso:', error);
-            this.accessInfo = { access: false, is_pro: false, is_admin: false, can_create_quote: false };
+            this.accessInfo = { access: false, is_pro: false, is_admin: false, can_create_quote: false, has_free_trial: false };
           } else {
             this.accessInfo = data || { access: false };
           }
         } catch (e) {
           console.error('Erro RPC check_access:', e);
-          this.accessInfo = { access: false, is_pro: false, is_admin: false, can_create_quote: false };
+          this.accessInfo = { access: false, is_pro: false, is_admin: false, can_create_quote: false, has_free_trial: false };
         }
       }
 
@@ -337,7 +357,6 @@
       }
 
       async saveState() {
-        // Salva apenas em localStorage (cache visual). O servidor é a fonte de verdade.
         try {
           localStorage.setItem('orca_profile', JSON.stringify(this.profile));
           localStorage.setItem('orca_clients', JSON.stringify(this.clients));
@@ -370,10 +389,12 @@
         } else if (this.isPro()) {
           badgeText.textContent = 'Plano Pro';
           badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-400/20 text-amber-300 border border-amber-400/40';
-        } else {
-          const qc = this.accessInfo?.quote_count ?? this.quotes.length;
-          badgeText.textContent = `Grátis (${qc}/1)`;
+        } else if (this.accessInfo?.has_free_trial) {
+          badgeText.textContent = 'Teste Grátis';
           badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition-all';
+        } else {
+          badgeText.textContent = 'Grátis';
+          badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-400 border border-slate-500/30 hover:bg-slate-500/20 transition-all';
         }
 
         if (this.user) {
@@ -447,7 +468,13 @@
         const totalApproved = this.quotes.filter(q => q.status === 'Aprovado').length;
         const recentQuotes = [...this.quotes].slice(0, 5);
         const quoteCount = this.accessInfo?.quote_count ?? this.quotes.length;
-        const quoteLimitText = this.isPro() || this.isAdmin() ? 'Ilimitado' : `${quoteCount}/1`;
+
+        let usageLabel = 'Grátis';
+        let usageValue = '0/1';
+        if (this.isAdmin()) { usageLabel = 'Admin'; usageValue = 'Ilimitado'; }
+        else if (this.isPro()) { usageLabel = 'Pro'; usageValue = 'Ilimitado'; }
+        else if (this.accessInfo?.has_free_trial) { usageLabel = 'Teste'; usageValue = `${quoteCount}/1`; }
+        else { usageLabel = 'Bloqueado'; usageValue = '0/1'; }
 
         return `
           <div class="space-y-6 animate-fade-in">
@@ -476,7 +503,7 @@
               <div class="col-span-2 sm:col-span-1 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
                 <div class="flex items-center justify-between text-slate-500 mb-2"><span class="text-xs font-semibold uppercase tracking-wide">Uso do Plano</span><div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center"><i class="fa-solid fa-chart-simple"></i></div></div>
                 <div>
-                  <div class="flex items-center justify-between"><p class="text-xl sm:text-2xl font-black text-slate-900">${quoteLimitText}</p><span class="text-xs font-bold ${this.isPro() || this.isAdmin() ? 'text-amber-500' : 'text-slate-400'}">${this.isAdmin() ? 'Admin' : (this.isPro() ? 'Pro' : 'Grátis')}</span></div>
+                  <div class="flex items-center justify-between"><p class="text-xl sm:text-2xl font-black text-slate-900">${usageValue}</p><span class="text-xs font-bold ${this.isPro() || this.isAdmin() ? 'text-amber-500' : 'text-slate-400'}">${usageLabel}</span></div>
                   ${!this.isPro() && !this.isAdmin() ? `<div class="w-full bg-slate-100 rounded-full h-2 mt-2 overflow-hidden"><div class="bg-emerald-500 h-2 rounded-full" style="width: ${quoteCount >= 1 ? 100 : 0}%"></div></div>` : ''}
                 </div>
               </div>
@@ -541,35 +568,40 @@
           return;
         }
 
-        // Sempre recarrega o status do servidor antes de decidir
         await this.loadAccessStatus();
 
+        // Pro/Admin: cria direto
         if (this.isPro()) {
-          // Pro/Admin: cria direto
           this._createNewQuote();
           return;
         }
 
-        // Usuário gratuito: tentar consumir o teste
-        try {
-          const { data, error } = await supabaseClient.rpc('consume_free_trial');
-          if (error) {
-            console.error('Erro consume_free_trial:', error);
-            this.showToast('Não foi possível liberar o orçamento. Tente novamente.', 'error');
-            return;
+        // Teste grátis disponível? Tenta consumir no servidor.
+        if (this.accessInfo?.has_free_trial) {
+          try {
+            const { data, error } = await supabaseClient.rpc('consume_free_trial');
+            if (error) {
+              console.error('Erro consume_free_trial:', error);
+              this.showToast('Não foi possível liberar o orçamento. Tente novamente.', 'error');
+              return;
+            }
+            if (data && data.success) {
+              this.accessInfo.has_free_trial = false;
+              this.accessInfo.can_create_quote = false;
+              this._createNewQuote();
+            } else {
+              this.showToast(data?.error || 'Você já utilizou seu orçamento gratuito.', 'error');
+              this.openPaywall();
+            }
+          } catch (e) {
+            console.error(e);
+            this.showToast('Erro de conexão. Tente novamente.', 'error');
           }
-          if (data && data.success) {
-            this.accessInfo.can_create_quote = true;
-            this._createNewQuote();
-          } else {
-            this.accessInfo.can_create_quote = false;
-            this.showToast(data?.error || 'Você já utilizou seu orçamento gratuito.', 'error');
-            this.openPaywall();
-          }
-        } catch (e) {
-          console.error(e);
-          this.showToast('Erro de conexão. Tente novamente.', 'error');
+          return;
         }
+
+        // Sem teste e sem Pro
+        this.openPaywall();
       }
 
       _createNewQuote() {
@@ -717,14 +749,9 @@
 
       async saveActiveQuote(notify = false) {
         if (!this.activeQuote) return false;
-        if (!this.user) {
-          this.showToast('Entre com sua conta para salvar.', 'error');
-          this.openAuthModal();
-          return false;
-        }
+        if (!this.requireFullAccess('salvar orçamentos')) return false;
         this.recalculateQuoteTotals();
 
-        const exists = this.quotes.some(q => q.id === this.activeQuote.id);
         const index = this.quotes.findIndex(q => q.id === this.activeQuote.id);
         if (index >= 0) this.quotes[index] = { ...this.activeQuote };
         else this.quotes.unshift({ ...this.activeQuote });
@@ -753,6 +780,7 @@
       }
 
       async deleteQuote(id) {
+        if (!this.requireFullAccess('excluir orçamentos')) return;
         if (!confirm('Deseja realmente excluir este orçamento?')) return;
         this.quotes = this.quotes.filter(q => q.id !== id);
         const { error } = await supabaseClient.from('quotes').delete().eq('id', id);
@@ -769,7 +797,7 @@
       }
 
       previewPDF(id) {
-        if (!this.isPro()) { this.openPaywall(); return; }
+        if (!this.requireFullAccess('gerar PDFs')) return;
         const q = this.quotes.find(item => item.id === id);
         if (!q) { this.showToast('Orçamento não encontrado.', 'error'); return; }
         const modal = document.getElementById('modal-container');
@@ -855,7 +883,7 @@
       }
 
       startNewReceipt() {
-        if (!this.isPro()) { this.openPaywall(); return; }
+        if (!this.requireFullAccess('emitir recibos')) return;
         const modal = document.getElementById('modal-container');
         document.getElementById('modal-content').innerHTML = `
           <div class="p-6 space-y-4">
@@ -876,7 +904,7 @@
 
       async saveReceipt(e) {
         e.preventDefault();
-        if (!this.isPro()) { this.openPaywall(); return; }
+        if (!this.requireFullAccess('emitir recibos')) return;
         const nextNum = this.receipts.length > 0 ? Math.max(...this.receipts.map(r => r.number || 100)) + 1 : 101;
         const newR = {
           id: this.generateId(), number: nextNum,
@@ -906,6 +934,7 @@
       }
 
       async deleteReceipt(id) {
+        if (!this.requireFullAccess('excluir recibos')) return;
         if (!confirm('Deseja excluir este recibo?')) return;
         this.receipts = this.receipts.filter(r => r.id !== id);
         const { error } = await supabaseClient.from('receipts').delete().eq('id', id);
@@ -916,7 +945,7 @@
       }
 
       previewReceiptPDF(id) {
-        if (!this.isPro()) { this.openPaywall(); return; }
+        if (!this.requireFullAccess('gerar PDFs')) return;
         const r = this.receipts.find(item => item.id === id);
         if (!r) { this.showToast('Recibo não encontrado.', 'error'); return; }
         const modal = document.getElementById('modal-container');
@@ -966,7 +995,7 @@
       }
 
       openClientModal() {
-        if (!this.isPro()) { this.openPaywall(); return; }
+        if (!this.requireFullAccess('cadastrar clientes')) return;
         const modal = document.getElementById('modal-container');
         document.getElementById('modal-content').innerHTML = `
           <div class="p-6 space-y-4">
@@ -987,7 +1016,7 @@
 
       async saveClient(e) {
         e.preventDefault();
-        if (!this.isPro()) { this.openPaywall(); return; }
+        if (!this.requireFullAccess('cadastrar clientes')) return;
         const newC = {
           id: this.generateId(),
           name: document.getElementById('cli-name').value.trim(),
@@ -1012,6 +1041,7 @@
       }
 
       async deleteClient(id) {
+        if (!this.requireFullAccess('excluir clientes')) return;
         if (!confirm('Deseja excluir este cliente?')) return;
         this.clients = this.clients.filter(c => c.id !== id);
         const { error } = await supabaseClient.from('clients').delete().eq('id', id);
@@ -1054,6 +1084,11 @@
 
       async saveSettings(e) {
         e.preventDefault();
+        if (!this.user) {
+          this.showToast('Entre com sua conta para salvar.', 'error');
+          this.openAuthModal();
+          return;
+        }
         this.profile.name = document.getElementById('set-name').value.trim();
         this.profile.tradeName = document.getElementById('set-tradename').value.trim();
         this.profile.document = document.getElementById('set-doc').value.trim();
@@ -1125,7 +1160,7 @@
               </div>
               <button onclick="app.closeModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
-            <p class="text-xs text-slate-300">Escolha uma das opções abaixo para ter orçamentos ilimitados e sem marca d'água:</p>
+            <p class="text-xs text-slate-300">Escolha uma das opções abaixo para continuar usando todos os recursos sem limites:</p>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
               <div class="p-4 bg-gradient-to-br from-emerald-600 to-teal-700 rounded-xl space-y-3 border border-emerald-500 shadow-md flex flex-col justify-between">
                 <div>
@@ -1162,7 +1197,6 @@
     let app;
     window.addEventListener('DOMContentLoaded', async () => {
       app = new OrçaJaApp();
-      await window.supabaseReady || null;
       await app.init();
     });
   </script>
