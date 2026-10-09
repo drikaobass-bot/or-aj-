@@ -117,7 +117,6 @@
           return v.toString(16);
         });
       }
-
       formatCurrency(val) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0); }
       formatDate(str) { if (!str) return ''; const parts = String(str).split('-'); if (parts.length !== 3) return str; const [y, m, d] = parts; return `${d}/${m}/${y}`; }
       escapeHTML(str) { if (str == null) return ''; return String(str).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)); }
@@ -127,7 +126,6 @@
       hasFullAccess() { if (this.isPro()) return true; return !!(this.accessInfo && this.accessInfo.has_free_trial === true); }
 
       requireFullAccess(actionLabel = 'esta função') {
-        if (!this.user && !this.hasFullAccess()) { this.showToast('Entre com sua conta para continuar.', 'error'); this.openAuthModal(); return false; }
         if (!this.hasFullAccess()) { this.showToast('Assine o plano Pro para ' + actionLabel + '.', 'error'); this.openPaywall(); return false; }
         return true;
       }
@@ -172,7 +170,6 @@
 
       async loadAccessStatus() {
         try {
-          // Se autenticado, chama sem visitor_id. Se anônimo, chama com visitor_id.
           const params = this.user ? { visitor_id: null } : { visitor_id: this.visitorId };
           const { data, error } = await supabaseClient.rpc('check_access', params);
           if (error) {
@@ -186,20 +183,13 @@
           }
           if (data && typeof data === 'object') {
             this.accessInfo = {
-              access: !!data.access,
-              is_pro: !!data.is_pro,
-              is_admin: !!data.is_admin,
-              has_free_trial: !!data.has_free_trial,
-              can_create_quote: !!data.can_create_quote,
+              access: !!data.access, is_pro: !!data.is_pro, is_admin: !!data.is_admin,
+              has_free_trial: !!data.has_free_trial, can_create_quote: !!data.can_create_quote,
               quote_count: Number(data.quote_count) || 0,
-              plan_type: data.plan_type,
-              end_date: data.end_date,
-              anonymous: !!data.anonymous
+              plan_type: data.plan_type, end_date: data.end_date, anonymous: !!data.anonymous
             };
           }
-        } catch (e) {
-          console.error('Erro RPC check_access:', e);
-        }
+        } catch (e) { console.error('Erro RPC check_access:', e); }
       }
 
       async loadSubscription() {
@@ -207,8 +197,7 @@
         try {
           const { data } = await supabaseClient.from('subscriptions').select('*').eq('user_id', this.user.id).order('created_at', { ascending: false }).limit(1).maybeSingle();
           if (!data) { this.subscription = null; return; }
-          const now = new Date();
-          const end = new Date(data.end_date);
+          const now = new Date(); const end = new Date(data.end_date);
           this.subscription = { ...data, isActive: data.status === 'active' && end > now, daysRemaining: (data.status === 'active' && end > now) ? Math.ceil((end - now) / (1000 * 60 * 60 * 24)) : 0 };
         } catch (e) { this.subscription = null; }
       }
@@ -340,10 +329,12 @@
         const ta = this.quotes.filter(q => q.status === 'Aprovado').length;
         const rq = [...this.quotes].slice(0, 5);
         const qc = this.accessInfo?.quote_count ?? this.quotes.length;
+
         let ul = 'Bloqueado', uv = '0/1';
         if (this.isAdmin()) { ul = 'Admin'; uv = 'Ilimitado'; }
         else if (this.isPro()) { ul = 'Pro'; uv = 'Ilimitado'; }
         else if (this.accessInfo?.has_free_trial) { ul = 'Teste'; uv = `${qc}/1`; }
+        else if (!this.user) { ul = 'Expirado'; uv = '1/1'; }
         else if (qc > 0) { ul = 'Expirado'; uv = `${qc}/1`; }
 
         return `
@@ -374,7 +365,7 @@
                 <div class="flex items-center justify-between text-slate-500 mb-2"><span class="text-xs font-semibold uppercase tracking-wide">Uso do Plano</span><div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center"><i class="fa-solid fa-chart-simple"></i></div></div>
                 <div>
                   <div class="flex items-center justify-between"><p class="text-xl sm:text-2xl font-black text-slate-900">${uv}</p><span class="text-xs font-bold ${this.isPro() || this.isAdmin() ? 'text-amber-500' : 'text-slate-400'}">${ul}</span></div>
-                  ${!this.isPro() && !this.isAdmin() ? `<div class="w-full bg-slate-100 rounded-full h-2 mt-2 overflow-hidden"><div class="bg-emerald-500 h-2 rounded-full" style="width: ${qc >= 1 ? 100 : 0}%"></div></div>` : ''}
+                  ${!this.isPro() && !this.isAdmin() ? `<div class="w-full bg-slate-100 rounded-full h-2 mt-2 overflow-hidden"><div class="bg-emerald-500 h-2 rounded-full" style="width: ${uv === 'Ilimitado' ? 0 : 100}%"></div></div>` : ''}
                 </div>
               </div>
             </div>
@@ -408,6 +399,7 @@
                 <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">${this.escapeHTML(q.status)}</span>
               </div>
               <div class="flex items-center space-x-1">
+                <button onclick="if(window.app) app.shareWhatsApp('${sid}')" title="Enviar por WhatsApp" class="p-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg"><i class="fa-brands fa-whatsapp"></i></button>
                 <button onclick="if(window.app) app.navigate('editor', {quoteId: '${sid}'})" class="p-2 text-slate-500 hover:text-emerald-600 rounded-lg"><i class="fa-solid fa-pen-to-square"></i></button>
                 <button onclick="if(window.app) app.previewPDF('${sid}')" class="p-2 text-slate-500 hover:text-rose-600 rounded-lg"><i class="fa-solid fa-file-pdf"></i></button>
                 <button onclick="if(window.app) app.deleteQuote('${sid}')" class="p-2 text-slate-500 hover:text-rose-600 rounded-lg"><i class="fa-solid fa-trash"></i></button>
@@ -433,15 +425,6 @@
         if (!this.hasFullAccess()) {
           this.showToast('Assine o plano Pro para criar mais orçamentos.', 'error');
           this.openPaywall();
-          return;
-        }
-        if (!this.user && !this.accessInfo?.has_free_trial) {
-          this.openPaywall();
-          return;
-        }
-        // Se não está logado mas tem teste disponível → cria localmente e salva depois exige login
-        if (!this.user) {
-          this._createNewQuote();
           return;
         }
         this._createNewQuote();
@@ -528,8 +511,10 @@
               <label class="text-xs font-bold uppercase text-slate-500">Condições e Observações</label>
               <textarea rows="3" oninput="if(window.app) app.activeQuote.notes = this.value" class="w-full p-2 text-sm border rounded-lg">${this.escapeHTML(q.notes || '')}</textarea>
             </div>
-            <div class="sticky bottom-16 bg-white p-3 rounded-2xl border shadow-xl flex justify-end space-x-2">
-              <button onclick="if(window.app) app.previewPDFFromEditor()" class="px-5 py-2.5 bg-emerald-600 text-white font-bold rounded-xl text-xs flex items-center space-x-2"><i class="fa-solid fa-file-pdf"></i><span>Gerar PDF / Imprimir</span></button>
+            <div class="sticky bottom-16 bg-white p-3 rounded-2xl border shadow-xl flex justify-end space-x-2 flex-wrap gap-2">
+              <button onclick="if(window.app) app.saveActiveQuote(true, false)" class="px-4 py-2.5 bg-slate-900 text-white font-bold rounded-xl text-xs">Salvar</button>
+              <button onclick="if(window.app) app.shareWhatsAppEditor()" class="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl text-xs flex items-center space-x-2"><i class="fa-brands fa-whatsapp"></i><span>WhatsApp</span></button>
+              <button onclick="if(window.app) app.previewPDFFromEditor()" class="px-5 py-2.5 bg-emerald-600 text-white font-bold rounded-xl text-xs flex items-center space-x-2"><i class="fa-solid fa-file-pdf"></i><span>Gerar PDF</span></button>
             </div>
           </div>
         `;
@@ -545,14 +530,13 @@
 
       async saveActiveQuote(notify = false, redirectToList = false) {
         if (!this.activeQuote) return false;
-        if (!this.user) { this.showToast('Entre com sua conta para salvar.', 'error'); this.openAuthModal(); return false; }
         this.recalculateQuoteTotals();
         const hasValidItem = this.activeQuote.items.some(i => (i.description || '').trim() !== '' && Number(i.subtotal) > 0);
         if (!hasValidItem) { this.showToast('Adicione pelo menos um item válido.', 'error'); return false; }
 
         const exists = this.quotes.some(q => q.id === this.activeQuote.id);
 
-        // Se NÃO tem acesso e é orçamento novo → consumir teste AGORA
+        // Consome teste se não tem acesso e é orçamento novo
         if (!this.hasFullAccess() && !exists) {
           try {
             const { data, error } = await supabaseClient.rpc('consume_free_trial', { visitor_id: this.visitorId });
@@ -575,22 +559,27 @@
           return false;
         }
 
+        // Salva local
         const i = this.quotes.findIndex(q => q.id === this.activeQuote.id);
         if (i >= 0) this.quotes[i] = { ...this.activeQuote };
         else this.quotes.unshift({ ...this.activeQuote });
 
-        const p = {
-          id: this.activeQuote.id, user_id: this.user.id, number: this.activeQuote.number,
-          client_name: this.activeQuote.clientName, date: this.activeQuote.date,
-          validity_days: this.activeQuote.validityDays, status: this.activeQuote.status,
-          items: this.activeQuote.items, discount_type: this.activeQuote.discountType,
-          discount_value: this.activeQuote.discountValue, extra_fee: this.activeQuote.extraFee,
-          subtotal: this.activeQuote.subtotal, total: this.activeQuote.total,
-          payment_method: this.activeQuote.paymentMethod, timeframe: this.activeQuote.timeframe,
-          notes: this.activeQuote.notes
-        };
-        const { error } = await supabaseClient.from('quotes').upsert(p, { onConflict: 'id' });
-        if (error) { this.showToast('Falha ao sincronizar.', 'error'); return false; }
+        // Se logado, salva também no Supabase
+        if (this.user) {
+          const p = {
+            id: this.activeQuote.id, user_id: this.user.id, number: this.activeQuote.number,
+            client_name: this.activeQuote.clientName, date: this.activeQuote.date,
+            validity_days: this.activeQuote.validityDays, status: this.activeQuote.status,
+            items: this.activeQuote.items, discount_type: this.activeQuote.discountType,
+            discount_value: this.activeQuote.discountValue, extra_fee: this.activeQuote.extraFee,
+            subtotal: this.activeQuote.subtotal, total: this.activeQuote.total,
+            payment_method: this.activeQuote.paymentMethod, timeframe: this.activeQuote.timeframe,
+            notes: this.activeQuote.notes
+          };
+          const { error } = await supabaseClient.from('quotes').upsert(p, { onConflict: 'id' });
+          if (error) { this.showToast('Falha ao sincronizar.', 'error'); return false; }
+        }
+
         await this.saveState();
         if (notify) this.showToast('Orçamento salvo!');
         if (redirectToList) this.navigate('quotes');
@@ -601,8 +590,10 @@
         if (!this.requireFullAccess('excluir orçamentos')) return;
         if (!confirm('Excluir este orçamento?')) return;
         this.quotes = this.quotes.filter(q => q.id !== id);
-        const { error } = await supabaseClient.from('quotes').delete().eq('id', id);
-        if (error) { this.showToast('Erro ao excluir.', 'error'); return; }
+        if (this.user) {
+          const { error } = await supabaseClient.from('quotes').delete().eq('id', id);
+          if (error) { this.showToast('Erro ao excluir.', 'error'); return; }
+        }
         await this.saveState();
         this.showToast('Orçamento excluído.');
         this.navigate('quotes');
@@ -647,10 +638,60 @@
               </div>
               <div class="pt-6 border-t text-[11px] text-slate-500 space-y-1"><p><strong>Condições:</strong> ${this.escapeHTML(q.notes || this.profile.footerTerms)}</p></div>
             </div>
-            <div class="flex justify-end space-x-2 no-print"><button onclick="window.print()" class="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold"><i class="fa-solid fa-print mr-1"></i> Imprimir / PDF</button></div>
+            <div class="flex justify-end space-x-2 no-print">
+              <button onclick="if(window.app) app.shareWhatsApp('${this.escapeHTML(id)}')" class="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold"><i class="fa-brands fa-whatsapp mr-1"></i> WhatsApp</button>
+              <button onclick="window.print()" class="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold"><i class="fa-solid fa-print mr-1"></i> Imprimir / PDF</button>
+            </div>
           </div>
         `;
         modal.classList.remove('hidden');
+      }
+
+      // =============== WHATSAPP SHARE ===============
+      buildQuoteWhatsAppMessage(q) {
+        const lines = [];
+        lines.push(`*ORÇAMENTO #${q.number}*`);
+        lines.push('');
+        lines.push(`*Prestador:* ${this.profile.tradeName || this.profile.name || '—'}`);
+        if (this.profile.phone) lines.push(`*Contato:* ${this.profile.phone}`);
+        lines.push(`*Cliente:* ${q.clientName || '—'}`);
+        lines.push(`*Data:* ${this.formatDate(q.date)}`);
+        lines.push('');
+        lines.push('*ITENS:*');
+        (q.items || []).forEach(it => {
+          lines.push(`• ${it.description || '—'}`);
+          lines.push(`  ${it.quantity}${it.unit || ''} × ${this.formatCurrency(it.unitPrice)} = *${this.formatCurrency(it.subtotal)}*`);
+        });
+        lines.push('');
+        lines.push(`Subtotal: ${this.formatCurrency(q.subtotal)}`);
+        if (q.discountValue > 0) lines.push(`Desconto: -${this.formatCurrency(q.discountValue)}`);
+        lines.push(`*TOTAL: ${this.formatCurrency(q.total)}*`);
+        if (q.notes) {
+          lines.push('');
+          lines.push(`_${q.notes}_`);
+        }
+        if (this.profile.pixKey) {
+          lines.push('');
+          lines.push(`*Chave Pix:* ${this.profile.pixKey}`);
+        }
+        return lines.join('\n');
+      }
+
+      shareWhatsApp(quoteId) {
+        if (!this.requireFullAccess('enviar por WhatsApp')) return;
+        const q = this.quotes.find(i => i.id === quoteId);
+        if (!q) { this.showToast('Orçamento não encontrado.', 'error'); return; }
+        const msg = this.buildQuoteWhatsAppMessage(q);
+        const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+        window.open(url, '_blank');
+      }
+
+      async shareWhatsAppEditor() {
+        if (!this.activeQuote) return;
+        // Salva antes de compartilhar (garante que os dados estão consistentes)
+        const ok = await this.saveActiveQuote(false, false);
+        if (!ok) return;
+        this.shareWhatsApp(this.activeQuote.id);
       }
 
       renderReceiptsList() {
@@ -690,8 +731,10 @@
         const n = this.receipts.length > 0 ? Math.max(...this.receipts.map(r => r.number || 100)) + 1 : 101;
         const nr = { id: this.generateId(), number: n, payerName: document.getElementById('rcpt-payer').value.trim(), receiverName: this.profile.tradeName || this.profile.name || '', date: document.getElementById('rcpt-date').value, amount: parseFloat(document.getElementById('rcpt-amount').value) || 0, description: document.getElementById('rcpt-desc').value.trim(), paymentMethod: 'Pix', notes: '' };
         this.receipts.unshift(nr);
-        const { error } = await supabaseClient.from('receipts').insert([{ id: nr.id, user_id: this.user.id, number: nr.number, payer_name: nr.payerName, receiver_name: nr.receiverName, date: nr.date, amount: nr.amount, description: nr.description, payment_method: nr.paymentMethod, notes: nr.notes }]);
-        if (error) { this.showToast('Falha ao salvar recibo.', 'error'); return; }
+        if (this.user) {
+          const { error } = await supabaseClient.from('receipts').insert([{ id: nr.id, user_id: this.user.id, number: nr.number, payer_name: nr.payerName, receiver_name: nr.receiverName, date: nr.date, amount: nr.amount, description: nr.description, payment_method: nr.paymentMethod, notes: nr.notes }]);
+          if (error) { this.showToast('Falha ao salvar recibo.', 'error'); return; }
+        }
         await this.saveState();
         this.closeModal();
         this.showToast('Recibo emitido!');
@@ -702,8 +745,10 @@
         if (!this.requireFullAccess('excluir recibos')) return;
         if (!confirm('Excluir este recibo?')) return;
         this.receipts = this.receipts.filter(r => r.id !== id);
-        const { error } = await supabaseClient.from('receipts').delete().eq('id', id);
-        if (error) { this.showToast('Erro ao excluir.', 'error'); return; }
+        if (this.user) {
+          const { error } = await supabaseClient.from('receipts').delete().eq('id', id);
+          if (error) { this.showToast('Erro ao excluir.', 'error'); return; }
+        }
         await this.saveState();
         this.showToast('Recibo excluído.');
         this.navigate('receipts');
@@ -769,8 +814,10 @@
         if (!this.requireFullAccess('cadastrar clientes')) return;
         const nc = { id: this.generateId(), name: document.getElementById('cli-name').value.trim(), phone: document.getElementById('cli-phone').value.trim(), email: document.getElementById('cli-email').value.trim(), address: document.getElementById('cli-address').value.trim() };
         this.clients.push(nc);
-        const { error } = await supabaseClient.from('clients').insert([{ id: nc.id, user_id: this.user.id, name: nc.name, phone: nc.phone, email: nc.email, address: nc.address }]);
-        if (error) { this.showToast('Falha ao salvar cliente.', 'error'); return; }
+        if (this.user) {
+          const { error } = await supabaseClient.from('clients').insert([{ id: nc.id, user_id: this.user.id, name: nc.name, phone: nc.phone, email: nc.email, address: nc.address }]);
+          if (error) { this.showToast('Falha ao salvar cliente.', 'error'); return; }
+        }
         await this.saveState();
         this.closeModal();
         this.showToast('Cliente cadastrado!');
@@ -781,8 +828,10 @@
         if (!this.requireFullAccess('excluir clientes')) return;
         if (!confirm('Excluir este cliente?')) return;
         this.clients = this.clients.filter(c => c.id !== id);
-        const { error } = await supabaseClient.from('clients').delete().eq('id', id);
-        if (error) { this.showToast('Erro ao excluir.', 'error'); return; }
+        if (this.user) {
+          const { error } = await supabaseClient.from('clients').delete().eq('id', id);
+          if (error) { this.showToast('Erro ao excluir.', 'error'); return; }
+        }
         await this.saveState();
         this.showToast('Cliente excluído.');
         this.navigate('clients');
@@ -813,7 +862,6 @@
 
       async saveSettings(e) {
         e.preventDefault();
-        if (!this.user) { this.showToast('Entre com sua conta para salvar.', 'error'); this.openAuthModal(); return; }
         this.profile.name = document.getElementById('set-name').value.trim();
         this.profile.tradeName = document.getElementById('set-tradename').value.trim();
         this.profile.document = document.getElementById('set-doc').value.trim();
@@ -862,41 +910,15 @@
         const pass = document.getElementById('auth-pass').value;
         if (!email || !pass) { this.showToast('Preencha e-mail e senha.', 'error'); return; }
         if (pass.length < 6) { this.showToast('Senha deve ter 6+ caracteres.', 'error'); return; }
-
-        // Tenta cadastro via Edge Function (bloqueia quem não tem autorização)
         try {
           const { data, error } = await supabaseClient.functions.invoke('create-account', { body: { email, password: pass } });
-          if (!error && data && data.success) {
-            this.showToast('Conta criada! Faça login.');
-            this.closeModal();
-            return;
-          }
-          if (data && data.error) {
-            this.showToast(data.error, 'error');
-            return;
-          }
-          // Se a Edge Function não existir (404), faz fallback para signUp direto
-          if (error && (error.message || '').toLowerCase().includes('not found')) {
-            console.warn('Edge Function create-account não encontrada. Usando signUp direto.');
-          } else if (error) {
-            this.showToast('Erro no cadastro: ' + error.message, 'error');
-            return;
-          }
-        } catch (e) {
-          console.warn('Erro ao chamar Edge Function, usando fallback:', e);
-        }
-
-        // Fallback: signUp direto (só funciona enquanto Edge Function não está publicada)
+          if (!error && data && data.success) { this.showToast('Conta criada! Faça login.'); this.closeModal(); return; }
+          if (data && data.error) { this.showToast(data.error, 'error'); return; }
+        } catch (e) { console.warn('Edge Function indisponível, usando fallback:', e); }
         const { data, error } = await supabaseClient.auth.signUp({ email, password: pass });
         if (error) { this.showToast('Erro no cadastro: ' + error.message, 'error'); return; }
-        if (data.session) {
-          this.user = data.user;
-          this.closeModal();
-          this.showToast('Conta criada e sessão iniciada!');
-          await this.init();
-        } else {
-          this.showToast('Cadastro realizado! Verifique seu e-mail para confirmar.', 'success');
-        }
+        if (data.session) { this.user = data.user; this.closeModal(); this.showToast('Conta criada!'); await this.init(); }
+        else { this.showToast('Cadastro realizado! Verifique seu e-mail.', 'success'); }
       }
 
       openPaywall() {
