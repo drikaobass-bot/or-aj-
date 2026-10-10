@@ -111,11 +111,6 @@
       isAdmin() { return !!(this.accessInfo && this.accessInfo.is_admin); }
       hasFullAccess() { if (this.isPro()) return true; return !!(this.accessInfo && this.accessInfo.has_free_trial === true); }
 
-      requireFullAccess(actionLabel = 'esta função') {
-        if (!this.hasFullAccess()) { this.showToast('Assine o plano Pro para ' + actionLabel + '.', 'error'); this.openPaywall(); return false; }
-        return true;
-      }
-
       async init() {
         try {
           const { data: { session } } = await supabaseClient.auth.getSession();
@@ -155,7 +150,7 @@
           const { data, error } = this.user
             ? await supabaseClient.rpc('rpc_acesso_user')
             : await supabaseClient.rpc('rpc_acesso_anon', { vid: this.visitorId });
-          if (error) { console.error('Erro ao verificar acesso:', error); return; }
+          if (error) { console.error('Erro acesso:', error); return; }
           if (data && typeof data === 'object') {
             this.accessInfo = {
               access: !!data.access, is_pro: !!data.is_pro, is_admin: !!data.is_admin,
@@ -470,29 +465,33 @@
       updateEditorTotals() { if (!this.activeQuote) return; const s = document.getElementById('editor-subtotal-val'); const t = document.getElementById('editor-total-val'); if (s) s.textContent = this.formatCurrency(this.activeQuote.subtotal); if (t) t.textContent = this.formatCurrency(this.activeQuote.total); }
 
       // ============================================================
-      // CORREÇÃO CRÍTICA: LÓGICA DE CONSUMO DO TESTE GRATUITO
+      // CONSUMO DO TESTE GRATUITO
+      // - Logado: RPC direto (rpc_consumir_user)
+      // - Anônimo: Edge Function com fingerprint (dynamic-worker)
       // ============================================================
       async saveActiveQuote(notify = false, redirectToList = false) {
         if (!this.activeQuote) return false;
         this.recalculateQuoteTotals();
 
-        // Valida item mínimo
         const hasValidItem = this.activeQuote.items.some(i => (i.description || '').trim() !== '' && Number(i.subtotal) > 0);
-        if (!hasValidItem) {
-          this.showToast('Adicione pelo menos um item válido com descrição e valor.', 'error');
-          return false;
-        }
+        if (!hasValidItem) { this.showToast('Adicione pelo menos um item válido com descrição e valor.', 'error'); return false; }
 
         const exists = this.quotes.some(q => q.id === this.activeQuote.id);
 
-        // ⚠️ CORREÇÃO: Consumir teste ao criar NOVO orçamento (não ao editar existente)
+        // Consome teste apenas ao CRIAR orçamento novo (não ao editar existente)
         if (!exists && !this.isPro()) {
-          // É um orçamento novo de usuário sem Pro/Admin.
-          // A decisão final é SEMPRE do servidor (RPC atômica).
           try {
-            const { data, error } = this.user
-              ? await supabaseClient.rpc('rpc_consumir_user')
-              : await supabaseClient.rpc('rpc_consumir_anon', { vid: this.visitorId });
+            let data, error;
+            if (this.user) {
+              const res = await supabaseClient.rpc('rpc_consumir_user');
+              data = res.data; error = res.error;
+            } else {
+              // Chama Edge Function que gera fingerprint no servidor
+              const res = await supabaseClient.functions.invoke('dynamic-worker', {
+                body: { vid: this.visitorId }
+              });
+              data = res.data; error = res.error;
+            }
 
             if (error) {
               console.error('Erro ao consumir teste:', error);
@@ -501,7 +500,6 @@
             }
 
             if (!data || !data.success) {
-              // Servidor recusou → já usou o teste, ou sem direito
               this.accessInfo.has_free_trial = false;
               this.accessInfo.can_create_quote = false;
               this.updateHeaderBadge();
@@ -510,26 +508,21 @@
               return false;
             }
 
-            // Consumo bem-sucedido no servidor → atualiza estado local
             this.accessInfo.has_free_trial = false;
             this.accessInfo.can_create_quote = false;
             this.accessInfo.quote_count = (this.accessInfo.quote_count || 0) + 1;
             this.updateHeaderBadge();
-
           } catch (e) {
             console.error('Erro ao consumir teste:', e);
             this.showToast('Erro de conexão. Tente novamente.', 'error');
             return false;
           }
         }
-        // Se é edição de orçamento existente, NÃO consome teste (já foi consumido na criação)
 
-        // Salva localmente
         const i = this.quotes.findIndex(q => q.id === this.activeQuote.id);
         if (i >= 0) this.quotes[i] = { ...this.activeQuote };
         else this.quotes.unshift({ ...this.activeQuote });
 
-        // Salva no Supabase se estiver logado
         if (this.user) {
           const p = {
             id: this.activeQuote.id, user_id: this.user.id, number: this.activeQuote.number,
@@ -542,11 +535,7 @@
             notes: this.activeQuote.notes
           };
           const { error } = await supabaseClient.from('quotes').upsert(p, { onConflict: 'id' });
-          if (error) {
-            console.error('Erro ao salvar orçamento:', error);
-            this.showToast('Falha ao sincronizar.', 'error');
-            return false;
-          }
+          if (error) { console.error(error); this.showToast('Falha ao sincronizar.', 'error'); return false; }
         }
 
         await this.saveState();
@@ -568,13 +557,11 @@
       }
 
       async previewPDFFromEditor() {
-        // Garante que foi salvo (isso pode consumir o teste se for novo)
         const ok = await this.saveActiveQuote(false, false);
         if (!ok) return;
         this.previewPDF(this.activeQuote.id);
       }
 
-      // PDF agora é permitido para QUALQUER orçamento existente (inclusive o de teste)
       previewPDF(id) {
         const q = this.quotes.find(item => item.id === id);
         if (!q) { this.showToast('Orçamento não encontrado.', 'error'); return; }
@@ -637,7 +624,6 @@
         return lines.join('\n');
       }
 
-      // WhatsApp agora funciona para qualquer orçamento existente
       shareWhatsApp(quoteId) {
         const q = this.quotes.find(i => i.id === quoteId);
         if (!q) { this.showToast('Orçamento não encontrado.', 'error'); return; }
@@ -746,7 +732,6 @@
         `;
       }
 
-      // Clientes: livres no plano gratuito (não consomem teste)
       openClientModal() {
         const modal = document.getElementById('modal-container');
         document.getElementById('modal-content').innerHTML = `
@@ -865,11 +850,6 @@
         const pass = document.getElementById('auth-pass').value;
         if (!email || !pass) { this.showToast('Preencha e-mail e senha.', 'error'); return; }
         if (pass.length < 6) { this.showToast('Senha deve ter 6+ caracteres.', 'error'); return; }
-        try {
-          const { data, error } = await supabaseClient.functions.invoke('create-account', { body: { email, password: pass } });
-          if (!error && data && data.success) { this.showToast('Conta criada! Faça login.'); this.closeModal(); return; }
-          if (data && data.error) { this.showToast(data.error, 'error'); return; }
-        } catch (e) { console.warn('Edge Function indisponível, usando fallback:', e); }
         const { data, error } = await supabaseClient.auth.signUp({ email, password: pass });
         if (error) { this.showToast('Erro no cadastro: ' + error.message, 'error'); return; }
         if (data.session) { this.user = data.user; this.closeModal(); this.showToast('Conta criada!'); await this.init(); }
