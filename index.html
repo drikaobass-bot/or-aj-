@@ -467,7 +467,7 @@
       // ============================================================
       // CONSUMO DO TESTE GRATUITO
       // - Logado: RPC direto (rpc_consumir_user)
-      // - Anônimo: Edge Function com fingerprint (dynamic-worker)
+      // - Anônimo: Edge Function com fingerprint (register-trial)
       // ============================================================
       async saveActiveQuote(notify = false, redirectToList = false) {
         if (!this.activeQuote) return false;
@@ -487,7 +487,7 @@
               data = res.data; error = res.error;
             } else {
               // Chama Edge Function que gera fingerprint no servidor
-              const res = await supabaseClient.functions.invoke('dynamic-worker', {
+              const res = await supabaseClient.functions.invoke('register-trial', {
                 body: { vid: this.visitorId }
               });
               data = res.data; error = res.error;
