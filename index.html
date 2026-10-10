@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Orça Já - Gerador de Orçamentos e Recibos</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>⚡</text></svg>">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -66,7 +67,6 @@
     const SUPABASE_URL = 'https://ecxgdndfyazyyhhctlgc.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjeGdkbmRmeWF6eXloaGN0bGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1NTA1NjUsImV4cCI6MjEwNzEyNjU2NX0.Heypx90Tvayc1c6-Y0T_YiBXNZvs1-BOEFxPF_YBNnM';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
     const VISITOR_KEY = 'orca_visitor_id';
     function getVisitorId() {
       let id = localStorage.getItem(VISITOR_KEY);
@@ -84,14 +84,9 @@
       address: '', profession: 'Prestador de Serviços', pixKey: '',
       footerTerms: 'Orçamento válido por 7 dias. Pagamento em até 3x no cartão sem juros ou 5% de desconto no Pix.'
     };
-
     const QUOTE_STATUSES = ['Rascunho', 'Enviado', 'Aprovado', 'Recusado'];
     const SUBSCRIPTION_CHECK_INTERVAL = 5 * 60 * 1000;
-
-    const EMPTY_ACCESS = {
-      access: false, is_pro: false, is_admin: false, has_free_trial: false,
-      can_create_quote: false, quote_count: 0, anonymous: true
-    };
+    const EMPTY_ACCESS = { access: false, is_pro: false, is_admin: false, has_free_trial: false, can_create_quote: false, quote_count: 0, anonymous: true };
 
     class OrçaJaApp {
       constructor() {
@@ -105,18 +100,9 @@
         this.currentTab = 'dashboard';
         this.activeQuote = null;
         this.subscriptionTimer = null;
-        this.backendWarned = false;
         this.visitorId = getVisitorId();
       }
-
-      generateId() {
-        if (window.crypto && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-          const r = Math.random() * 16 | 0;
-          const v = c === 'x' ? r : (r & 0x3 | 0x8);
-          return v.toString(16);
-        });
-      }
+      generateId() { if (window.crypto && typeof crypto.randomUUID === 'function') return crypto.randomUUID(); return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; const v = c === 'x' ? r : (r & 0x3 | 0x8); return v.toString(16); }); }
       formatCurrency(val) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0); }
       formatDate(str) { if (!str) return ''; const parts = String(str).split('-'); if (parts.length !== 3) return str; const [y, m, d] = parts; return `${d}/${m}/${y}`; }
       escapeHTML(str) { if (str == null) return ''; return String(str).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)); }
@@ -134,12 +120,8 @@
         try {
           const { data: { session } } = await supabaseClient.auth.getSession();
           this.user = session?.user || null;
-          if (this.user) {
-            await this.loadUserDataFromSupabase();
-            await this.loadSubscription();
-          } else {
-            this.loadLocalFallback();
-          }
+          if (this.user) { await this.loadUserDataFromSupabase(); await this.loadSubscription(); }
+          else { this.loadLocalFallback(); }
           await this.loadAccessStatus();
           this.updateHeaderBadge();
           this.navigate('dashboard');
@@ -173,11 +155,7 @@
           const { data, error } = this.user
             ? await supabaseClient.rpc('rpc_acesso_user')
             : await supabaseClient.rpc('rpc_acesso_anon', { vid: this.visitorId });
-
-          if (error) {
-            console.error('Erro ao verificar acesso:', error);
-            return;
-          }
+          if (error) { console.error('Erro ao verificar acesso:', error); return; }
           if (data && typeof data === 'object') {
             this.accessInfo = {
               access: !!data.access, is_pro: !!data.is_pro, is_admin: !!data.is_admin,
@@ -212,25 +190,16 @@
         if (!this.user) return;
         try {
           let { data: profileData } = await supabaseClient.from('profiles').select('*').eq('id', this.user.id).maybeSingle();
-          if (!profileData) {
-            const newProf = { id: this.user.id, email: this.user.email };
-            const { error: insErr } = await supabaseClient.from('profiles').upsert([newProf], { onConflict: 'id' });
-            if (!insErr) profileData = newProf;
-          }
+          if (!profileData) { const np = { id: this.user.id, email: this.user.email }; const { error: ie } = await supabaseClient.from('profiles').upsert([np], { onConflict: 'id' }); if (!ie) profileData = np; }
           if (profileData) {
-            this.profile = {
-              name: profileData.name || '', tradeName: profileData.trade_name || '', document: profileData.document || '',
-              phone: profileData.phone || '', email: profileData.email || this.user.email || '', address: profileData.address || '',
-              profession: profileData.profession || 'Prestador de Serviços', pixKey: profileData.pix_key || '',
-              footerTerms: profileData.footer_terms || DEFAULT_PROFILE.footerTerms,
-            };
+            this.profile = { name: profileData.name || '', tradeName: profileData.trade_name || '', document: profileData.document || '', phone: profileData.phone || '', email: profileData.email || this.user.email || '', address: profileData.address || '', profession: profileData.profession || 'Prestador de Serviços', pixKey: profileData.pix_key || '', footerTerms: profileData.footer_terms || DEFAULT_PROFILE.footerTerms };
           }
-          const { data: clientsData } = await supabaseClient.from('clients').select('*').eq('user_id', this.user.id).order('name', { ascending: true });
-          this.clients = (clientsData || []).map(c => ({ id: c.id, name: c.name || '', phone: c.phone || '', email: c.email || '', address: c.address || '' }));
-          const { data: quotesData } = await supabaseClient.from('quotes').select('*').eq('user_id', this.user.id).order('number', { ascending: false });
-          this.quotes = (quotesData || []).map(q => ({ id: q.id, number: q.number, clientName: q.client_name || '', date: q.date, validityDays: q.validity_days || 7, status: q.status || 'Rascunho', items: Array.isArray(q.items) ? q.items : [], discountType: q.discount_type || 'valor', discountValue: Number(q.discount_value) || 0, extraFee: Number(q.extra_fee) || 0, subtotal: Number(q.subtotal) || 0, total: Number(q.total) || 0, paymentMethod: q.payment_method || '', timeframe: q.timeframe || '', notes: q.notes || '' }));
-          const { data: receiptsData } = await supabaseClient.from('receipts').select('*').eq('user_id', this.user.id).order('number', { ascending: false });
-          this.receipts = (receiptsData || []).map(r => ({ id: r.id, number: r.number, payerName: r.payer_name || '', receiverName: r.receiver_name || '', date: r.date, amount: Number(r.amount) || 0, description: r.description || '', paymentMethod: r.payment_method || 'Pix', notes: r.notes || '' }));
+          const { data: cd } = await supabaseClient.from('clients').select('*').eq('user_id', this.user.id).order('name', { ascending: true });
+          this.clients = (cd || []).map(c => ({ id: c.id, name: c.name || '', phone: c.phone || '', email: c.email || '', address: c.address || '' }));
+          const { data: qd } = await supabaseClient.from('quotes').select('*').eq('user_id', this.user.id).order('number', { ascending: false });
+          this.quotes = (qd || []).map(q => ({ id: q.id, number: q.number, clientName: q.client_name || '', date: q.date, validityDays: q.validity_days || 7, status: q.status || 'Rascunho', items: Array.isArray(q.items) ? q.items : [], discountType: q.discount_type || 'valor', discountValue: Number(q.discount_value) || 0, extraFee: Number(q.extra_fee) || 0, subtotal: Number(q.subtotal) || 0, total: Number(q.total) || 0, paymentMethod: q.payment_method || '', timeframe: q.timeframe || '', notes: q.notes || '' }));
+          const { data: rd } = await supabaseClient.from('receipts').select('*').eq('user_id', this.user.id).order('number', { ascending: false });
+          this.receipts = (rd || []).map(r => ({ id: r.id, number: r.number, payerName: r.payer_name || '', receiverName: r.receiver_name || '', date: r.date, amount: Number(r.amount) || 0, description: r.description || '', paymentMethod: r.payment_method || 'Pix', notes: r.notes || '' }));
         } catch (e) { console.error('Erro loadUserData:', e); this.loadLocalFallback(); }
       }
 
@@ -250,46 +219,27 @@
       }
 
       updateHeaderBadge() {
-        const badgeText = document.getElementById('plan-text');
-        const badgeBtn = document.getElementById('plan-badge');
-        const authBtn = document.getElementById('auth-btn');
-        if (!badgeText) return;
-
-        if (!this.user && !this.accessInfo?.has_free_trial) {
-          badgeText.textContent = 'Teste usado';
-          badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-400 border border-slate-500/30';
-        } else if (!this.user && this.accessInfo?.has_free_trial) {
-          badgeText.textContent = 'Teste Grátis';
-          badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30';
-        } else if (this.isAdmin()) {
-          badgeText.textContent = 'Admin';
-          badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-400/20 text-purple-300 border border-purple-400/40';
-        } else if (this.isPro()) {
-          badgeText.textContent = 'Plano Pro';
-          badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-400/20 text-amber-300 border border-amber-400/40';
-        } else if (this.accessInfo?.has_free_trial) {
-          badgeText.textContent = 'Teste Grátis';
-          badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30';
-        } else {
-          badgeText.textContent = 'Grátis';
-          badgeBtn.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-400 border border-slate-500/30';
-        }
-
-        if (this.user) { authBtn.textContent = 'Sair'; authBtn.onclick = () => this.logout(); }
-        else { authBtn.textContent = 'Entrar'; authBtn.onclick = () => this.openAuthModal(); }
+        const bt = document.getElementById('plan-text');
+        const bb = document.getElementById('plan-badge');
+        const ab = document.getElementById('auth-btn');
+        if (!bt) return;
+        if (!this.user && !this.accessInfo?.has_free_trial) { bt.textContent = 'Teste usado'; bb.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-400 border border-slate-500/30'; }
+        else if (!this.user && this.accessInfo?.has_free_trial) { bt.textContent = 'Teste Grátis'; bb.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'; }
+        else if (this.isAdmin()) { bt.textContent = 'Admin'; bb.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-400/20 text-purple-300 border border-purple-400/40'; }
+        else if (this.isPro()) { bt.textContent = 'Plano Pro'; bb.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-400/20 text-amber-300 border border-amber-400/40'; }
+        else if (this.accessInfo?.has_free_trial) { bt.textContent = 'Teste Grátis'; bb.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'; }
+        else { bt.textContent = 'Grátis'; bb.className = 'flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-400 border border-slate-500/30'; }
+        if (this.user) { ab.textContent = 'Sair'; ab.onclick = () => this.logout(); }
+        else { ab.textContent = 'Entrar'; ab.onclick = () => this.openAuthModal(); }
       }
 
       async logout() {
         if (this.subscriptionTimer) clearInterval(this.subscriptionTimer);
         await supabaseClient.auth.signOut();
-        this.user = null;
-        this.profile = { ...DEFAULT_PROFILE };
-        this.accessInfo = { ...EMPTY_ACCESS };
-        this.subscription = null;
+        this.user = null; this.profile = { ...DEFAULT_PROFILE }; this.accessInfo = { ...EMPTY_ACCESS }; this.subscription = null;
         this.clients = []; this.quotes = []; this.receipts = [];
         try { localStorage.removeItem('orca_profile'); localStorage.removeItem('orca_clients'); localStorage.removeItem('orca_quotes'); localStorage.removeItem('orca_receipts'); } catch (e) {}
-        this.showToast('Sessão encerrada.');
-        this.init();
+        this.showToast('Sessão encerrada.'); this.init();
       }
 
       showToast(msg, type = 'success') {
@@ -326,13 +276,11 @@
         const ta = this.quotes.filter(q => q.status === 'Aprovado').length;
         const rq = [...this.quotes].slice(0, 5);
         const qc = this.accessInfo?.quote_count ?? this.quotes.length;
-
         let ul = 'Bloqueado', uv = '0/1';
         if (this.isAdmin()) { ul = 'Admin'; uv = 'Ilimitado'; }
         else if (this.isPro()) { ul = 'Pro'; uv = 'Ilimitado'; }
         else if (this.accessInfo?.has_free_trial) { ul = 'Teste'; uv = `${qc}/1`; }
         else { ul = 'Expirado'; uv = '1/1'; }
-
         return `
           <div class="space-y-6 animate-fade-in">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 text-white p-5 rounded-2xl shadow-lg relative overflow-hidden">
@@ -419,7 +367,7 @@
       async startNewQuote() {
         await this.loadAccessStatus();
         if (!this.hasFullAccess()) {
-          this.showToast('Assine o plano Pro para criar mais orçamentos.', 'error');
+          this.showToast('Você já utilizou seu orçamento gratuito. Assine o Pro para criar mais.', 'error');
           this.openPaywall();
           return;
         }
@@ -441,10 +389,7 @@
       renderQuoteEditor(quoteId) {
         if (quoteId) {
           const ex = this.quotes.find(q => q.id === quoteId);
-          if (ex) {
-            if (!this.hasFullAccess()) { setTimeout(() => this.openPaywall(), 0); return '<div class="p-8 text-center text-slate-400">Acesso restrito.</div>'; }
-            this.activeQuote = JSON.parse(JSON.stringify(ex));
-          }
+          if (ex) this.activeQuote = JSON.parse(JSON.stringify(ex));
         }
         if (!this.activeQuote) { this.startNewQuote(); return ''; }
         const q = this.activeQuote;
@@ -524,43 +469,67 @@
       recalculateQuoteTotals() { if (!this.activeQuote) return; const s = (this.activeQuote.items || []).reduce((a, it) => a + (Number(it.subtotal) || 0), 0); const d = Number(this.activeQuote.discountValue) || 0; this.activeQuote.subtotal = s; this.activeQuote.total = Math.max(0, s - d); this.updateEditorTotals(); }
       updateEditorTotals() { if (!this.activeQuote) return; const s = document.getElementById('editor-subtotal-val'); const t = document.getElementById('editor-total-val'); if (s) s.textContent = this.formatCurrency(this.activeQuote.subtotal); if (t) t.textContent = this.formatCurrency(this.activeQuote.total); }
 
+      // ============================================================
+      // CORREÇÃO CRÍTICA: LÓGICA DE CONSUMO DO TESTE GRATUITO
+      // ============================================================
       async saveActiveQuote(notify = false, redirectToList = false) {
         if (!this.activeQuote) return false;
         this.recalculateQuoteTotals();
+
+        // Valida item mínimo
         const hasValidItem = this.activeQuote.items.some(i => (i.description || '').trim() !== '' && Number(i.subtotal) > 0);
-        if (!hasValidItem) { this.showToast('Adicione pelo menos um item válido.', 'error'); return false; }
+        if (!hasValidItem) {
+          this.showToast('Adicione pelo menos um item válido com descrição e valor.', 'error');
+          return false;
+        }
 
         const exists = this.quotes.some(q => q.id === this.activeQuote.id);
 
-        if (!this.hasFullAccess() && !exists) {
+        // ⚠️ CORREÇÃO: Consumir teste ao criar NOVO orçamento (não ao editar existente)
+        if (!exists && !this.isPro()) {
+          // É um orçamento novo de usuário sem Pro/Admin.
+          // A decisão final é SEMPRE do servidor (RPC atômica).
           try {
             const { data, error } = this.user
               ? await supabaseClient.rpc('rpc_consumir_user')
               : await supabaseClient.rpc('rpc_consumir_anon', { vid: this.visitorId });
 
-            if (error || !data?.success) {
-              this.showToast(data?.error || 'Você já utilizou seu orçamento gratuito.', 'error');
+            if (error) {
+              console.error('Erro ao consumir teste:', error);
+              this.showToast('Erro ao validar teste gratuito. Tente novamente.', 'error');
+              return false;
+            }
+
+            if (!data || !data.success) {
+              // Servidor recusou → já usou o teste, ou sem direito
+              this.accessInfo.has_free_trial = false;
+              this.accessInfo.can_create_quote = false;
+              this.updateHeaderBadge();
+              this.showToast(data?.error || 'Você já utilizou seu orçamento gratuito. Assine para continuar.', 'error');
               this.openPaywall();
               return false;
             }
+
+            // Consumo bem-sucedido no servidor → atualiza estado local
             this.accessInfo.has_free_trial = false;
             this.accessInfo.can_create_quote = false;
             this.accessInfo.quote_count = (this.accessInfo.quote_count || 0) + 1;
             this.updateHeaderBadge();
+
           } catch (e) {
-            this.showToast('Erro de conexão.', 'error');
+            console.error('Erro ao consumir teste:', e);
+            this.showToast('Erro de conexão. Tente novamente.', 'error');
             return false;
           }
-        } else if (!this.hasFullAccess() && exists) {
-          this.showToast('Assine o plano Pro.', 'error');
-          this.openPaywall();
-          return false;
         }
+        // Se é edição de orçamento existente, NÃO consome teste (já foi consumido na criação)
 
+        // Salva localmente
         const i = this.quotes.findIndex(q => q.id === this.activeQuote.id);
         if (i >= 0) this.quotes[i] = { ...this.activeQuote };
         else this.quotes.unshift({ ...this.activeQuote });
 
+        // Salva no Supabase se estiver logado
         if (this.user) {
           const p = {
             id: this.activeQuote.id, user_id: this.user.id, number: this.activeQuote.number,
@@ -573,7 +542,11 @@
             notes: this.activeQuote.notes
           };
           const { error } = await supabaseClient.from('quotes').upsert(p, { onConflict: 'id' });
-          if (error) { this.showToast('Falha ao sincronizar.', 'error'); return false; }
+          if (error) {
+            console.error('Erro ao salvar orçamento:', error);
+            this.showToast('Falha ao sincronizar.', 'error');
+            return false;
+          }
         }
 
         await this.saveState();
@@ -583,7 +556,6 @@
       }
 
       async deleteQuote(id) {
-        if (!this.requireFullAccess('excluir orçamentos')) return;
         if (!confirm('Excluir este orçamento?')) return;
         this.quotes = this.quotes.filter(q => q.id !== id);
         if (this.user) {
@@ -595,10 +567,15 @@
         this.navigate('quotes');
       }
 
-      async previewPDFFromEditor() { const ok = await this.saveActiveQuote(false, false); if (!ok) return; this.previewPDF(this.activeQuote.id); }
+      async previewPDFFromEditor() {
+        // Garante que foi salvo (isso pode consumir o teste se for novo)
+        const ok = await this.saveActiveQuote(false, false);
+        if (!ok) return;
+        this.previewPDF(this.activeQuote.id);
+      }
 
+      // PDF agora é permitido para QUALQUER orçamento existente (inclusive o de teste)
       previewPDF(id) {
-        if (!this.requireFullAccess('gerar PDFs')) return;
         const q = this.quotes.find(item => item.id === id);
         if (!q) { this.showToast('Orçamento não encontrado.', 'error'); return; }
         const modal = document.getElementById('modal-container');
@@ -645,20 +622,14 @@
 
       buildQuoteWhatsAppMessage(q) {
         const lines = [];
-        lines.push(`*ORÇAMENTO #${q.number}*`);
-        lines.push('');
+        lines.push(`*ORÇAMENTO #${q.number}*`, '');
         lines.push(`*Prestador:* ${this.profile.tradeName || this.profile.name || '—'}`);
         if (this.profile.phone) lines.push(`*Contato:* ${this.profile.phone}`);
         lines.push(`*Cliente:* ${q.clientName || '—'}`);
-        lines.push(`*Data:* ${this.formatDate(q.date)}`);
-        lines.push('');
+        lines.push(`*Data:* ${this.formatDate(q.date)}`, '');
         lines.push('*ITENS:*');
-        (q.items || []).forEach(it => {
-          lines.push(`• ${it.description || '—'}`);
-          lines.push(`  ${it.quantity}${it.unit || ''} × ${this.formatCurrency(it.unitPrice)} = *${this.formatCurrency(it.subtotal)}*`);
-        });
-        lines.push('');
-        lines.push(`Subtotal: ${this.formatCurrency(q.subtotal)}`);
+        (q.items || []).forEach(it => { lines.push(`• ${it.description || '—'}`); lines.push(`  ${it.quantity}${it.unit || ''} × ${this.formatCurrency(it.unitPrice)} = *${this.formatCurrency(it.subtotal)}*`); });
+        lines.push('', `Subtotal: ${this.formatCurrency(q.subtotal)}`);
         if (q.discountValue > 0) lines.push(`Desconto: -${this.formatCurrency(q.discountValue)}`);
         lines.push(`*TOTAL: ${this.formatCurrency(q.total)}*`);
         if (q.notes) { lines.push(''); lines.push(`_${q.notes}_`); }
@@ -666,8 +637,8 @@
         return lines.join('\n');
       }
 
+      // WhatsApp agora funciona para qualquer orçamento existente
       shareWhatsApp(quoteId) {
-        if (!this.requireFullAccess('enviar por WhatsApp')) return;
         const q = this.quotes.find(i => i.id === quoteId);
         if (!q) { this.showToast('Orçamento não encontrado.', 'error'); return; }
         const msg = this.buildQuoteWhatsAppMessage(q);
@@ -694,7 +665,7 @@
       }
 
       startNewReceipt() {
-        if (!this.requireFullAccess('emitir recibos')) return;
+        if (!this.hasFullAccess()) { this.showToast('Assine o plano Pro para emitir recibos.', 'error'); this.openPaywall(); return; }
         const modal = document.getElementById('modal-container');
         document.getElementById('modal-content').innerHTML = `
           <div class="p-6 space-y-4">
@@ -715,7 +686,7 @@
 
       async saveReceipt(e) {
         e.preventDefault();
-        if (!this.requireFullAccess('emitir recibos')) return;
+        if (!this.hasFullAccess()) { this.showToast('Assine o plano Pro.', 'error'); this.openPaywall(); return; }
         const n = this.receipts.length > 0 ? Math.max(...this.receipts.map(r => r.number || 100)) + 1 : 101;
         const nr = { id: this.generateId(), number: n, payerName: document.getElementById('rcpt-payer').value.trim(), receiverName: this.profile.tradeName || this.profile.name || '', date: document.getElementById('rcpt-date').value, amount: parseFloat(document.getElementById('rcpt-amount').value) || 0, description: document.getElementById('rcpt-desc').value.trim(), paymentMethod: 'Pix', notes: '' };
         this.receipts.unshift(nr);
@@ -730,7 +701,6 @@
       }
 
       async deleteReceipt(id) {
-        if (!this.requireFullAccess('excluir recibos')) return;
         if (!confirm('Excluir este recibo?')) return;
         this.receipts = this.receipts.filter(r => r.id !== id);
         if (this.user) {
@@ -743,7 +713,6 @@
       }
 
       previewReceiptPDF(id) {
-        if (!this.requireFullAccess('gerar PDFs')) return;
         const r = this.receipts.find(item => item.id === id);
         if (!r) { this.showToast('Recibo não encontrado.', 'error'); return; }
         const modal = document.getElementById('modal-container');
@@ -777,8 +746,8 @@
         `;
       }
 
+      // Clientes: livres no plano gratuito (não consomem teste)
       openClientModal() {
-        if (!this.requireFullAccess('cadastrar clientes')) return;
         const modal = document.getElementById('modal-container');
         document.getElementById('modal-content').innerHTML = `
           <div class="p-6 space-y-4">
@@ -799,7 +768,6 @@
 
       async saveClient(e) {
         e.preventDefault();
-        if (!this.requireFullAccess('cadastrar clientes')) return;
         const nc = { id: this.generateId(), name: document.getElementById('cli-name').value.trim(), phone: document.getElementById('cli-phone').value.trim(), email: document.getElementById('cli-email').value.trim(), address: document.getElementById('cli-address').value.trim() };
         this.clients.push(nc);
         if (this.user) {
@@ -813,7 +781,6 @@
       }
 
       async deleteClient(id) {
-        if (!this.requireFullAccess('excluir clientes')) return;
         if (!confirm('Excluir este cliente?')) return;
         this.clients = this.clients.filter(c => c.id !== id);
         if (this.user) {
