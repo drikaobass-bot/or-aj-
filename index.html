@@ -841,12 +841,55 @@
       async handleSignUp() {
         const email = document.getElementById('auth-email').value.trim();
         const pass = document.getElementById('auth-pass').value;
-        if (!email || !pass) { this.showToast('Preencha e-mail e senha.', 'error'); return; }
-        if (pass.length < 6) { this.showToast('Senha deve ter 6+ caracteres.', 'error'); return; }
-        const { data, error } = await supabaseClient.auth.signUp({ email, password: pass });
-        if (error) { this.showToast('Erro no cadastro: ' + error.message, 'error'); return; }
-        if (data.session) { this.user = data.user; this.closeModal(); this.showToast('Conta criada!'); await this.init(); }
-        else { this.showToast('Cadastro realizado! Verifique seu e-mail.', 'success'); }
+
+        if (!email || !pass) {
+          this.showToast('Preencha e-mail e senha.', 'error');
+          return;
+        }
+        if (pass.length < 6) {
+          this.showToast('Senha deve ter 6+ caracteres.', 'error');
+          return;
+        }
+
+        try {
+          // Chama a Edge Function create-account (valida permissão + cria usuário)
+          const { data, error } = await supabaseClient.functions.invoke('create-account', {
+            body: { email: email, password: pass }
+          });
+
+          if (error) {
+            console.error('Erro ao chamar create-account:', error);
+            this.showToast('Erro de conexão. Tente novamente.', 'error');
+            return;
+          }
+
+          if (!data || !data.success) {
+            // Bloqueado ou erro de validação
+            this.showToast(data?.error || 'Não foi possível criar a conta.', 'error');
+            return;
+          }
+
+          // Conta criada com sucesso — agora faz login automático
+          const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: pass
+          });
+
+          if (authError) {
+            this.showToast('Conta criada! Faça login para continuar.', 'success');
+            this.closeModal();
+            return;
+          }
+
+          this.user = authData.user;
+          this.closeModal();
+          this.showToast('Conta criada e sessão iniciada!');
+          await this.init();
+
+        } catch (e) {
+          console.error('Erro no cadastro:', e);
+          this.showToast('Erro inesperado. Tente novamente.', 'error');
+        }
       }
 
       openPaywall() {
